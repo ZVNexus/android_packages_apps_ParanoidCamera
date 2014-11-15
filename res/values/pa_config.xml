@@ -40,4 +40,7 @@
          sharpness value to the HAL. -->
     <bool name="config_use_absolute_sharpness">false</bool>
 
+    <!-- Minimum picture size (in pixel) to include in selection list. -->
+    <integer name="minimum_picture_size">900000</integer>
+
 </resources>
