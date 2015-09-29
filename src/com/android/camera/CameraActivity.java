@@ -89,6 +89,8 @@ import android.widget.ProgressBar;
 import android.widget.ShareActionProvider;
 import android.widget.Toast;
 
+import co.aospa.camera.R;
+
 import com.android.camera.app.AppManagerFactory;
 import com.android.camera.app.PlaceholderManager;
 import com.android.camera.app.PanoramaStitchingManager;
@@ -119,7 +121,10 @@ import com.android.camera.util.PersistUtil;
 import com.android.camera.util.PhotoSphereHelper;
 import com.android.camera.util.PhotoSphereHelper.PanoramaViewHelper;
 import com.android.camera.util.UsageStatistics;
-import co.aospa.camera.R;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.GlideBuilder;
+import com.bumptech.glide.MemoryCategory;
+import com.bumptech.glide.load.engine.executor.FifoPriorityThreadPoolExecutor;
 
 import java.io.File;
 import java.io.IOException;
@@ -1617,8 +1622,7 @@ public class CameraActivity extends Activity
                 FilmStripView.ImageData.SIZE_FULL);
         // Put a CameraPreviewData at the first position.
         mWrappedDataAdapter = new FixedFirstDataAdapter(
-                new CameraDataAdapter(new ColorDrawable(
-                        getResources().getColor(R.color.photo_placeholder))),
+                new CameraDataAdapter(R.color.photo_placeholder),
                 mCameraPreviewData);
 
         mFilmStripView.setViewGap(
@@ -1686,9 +1690,7 @@ public class CameraActivity extends Activity
         display.getSize(size);
         int width = size.x;
         int height = size.y;
-
         int lower = Math.min(width, height);
-
         int offset = lower * 7 / 100;
         SETTING_LIST_WIDTH_1 = lower / 2 + offset;
         SETTING_LIST_WIDTH_2 = lower / 2 - offset;
@@ -1698,6 +1700,12 @@ public class CameraActivity extends Activity
 
         if (mAutoTestEnabled) {
             registerAutoTestReceiver();
+        }
+
+        if (!Glide.isSetup()) {
+            Glide.setup(new GlideBuilder(getApplicationContext())
+                    .setResizeService(new FifoPriorityThreadPoolExecutor(2)));
+            Glide.get(getApplicationContext()).setMemoryCategory(MemoryCategory.HIGH);
         }
     }
 
