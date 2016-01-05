@@ -25,4 +25,8 @@
          Example: 50 instead of ISO50 -->
     <bool name="iso_values_use_numbers">false</bool>
 
+    <!-- Set's manufacturer specific parameters on startup.
+         Example: lge-camera=1;cam-mode=0 -->
+    <string name="manufacturer_key_values"></string>
+
 </resources>
