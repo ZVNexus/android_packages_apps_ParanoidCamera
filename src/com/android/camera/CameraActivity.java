@@ -2048,7 +2048,9 @@ public class CameraActivity extends Activity
     }
 
     public void setPreviewGestures(PreviewGestures previewGestures) {
-        mFilmStripView.setPreviewGestures(previewGestures);
+        if(mFilmStripView != null) {
+            mFilmStripView.setPreviewGestures(previewGestures);
+        }
     }
 
     protected long updateStorageSpace() {
