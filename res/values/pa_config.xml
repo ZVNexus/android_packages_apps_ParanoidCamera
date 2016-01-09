@@ -29,4 +29,7 @@
          Example: lge-camera=1;cam-mode=0 -->
     <string name="manufacturer_key_values"></string>
 
+    <!-- Enable support for LGE HDR. -->
+    <bool name="lge_hdr_mode">false</bool>
+
 </resources>
