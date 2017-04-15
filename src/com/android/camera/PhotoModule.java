@@ -1605,6 +1605,8 @@ public class PhotoModule
                         }
                         String mPictureFormat = mParameters.get(KEY_PICTURE_FORMAT);
                          Log.d(TAG, "capture:" + title + "." + mPictureFormat);
+                         mParameters.set("image-file-path", Storage.generateFilepath(
+                                 title, mPictureFormat));
                          if (mIsBokehMode) {
                              if (!PERSIST_BOKEH_DEBUG_CHECK && mSaveBokehXmp) {
                                  if (jpegData != null && mCallTime == 3) {
