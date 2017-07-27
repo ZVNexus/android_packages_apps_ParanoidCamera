@@ -425,7 +425,7 @@ public class PanoCaptureModule implements CameraModule, PhotoController {
 
     @Override
     public void onPauseBeforeSuper() {
-        mUI.applySurfaceChange(0, false);
+        mUI.applySurfaceChange(CameraUI.SURFACE_STATUS.HIDE);
     }
 
     @Override
@@ -445,7 +445,7 @@ public class PanoCaptureModule implements CameraModule, PhotoController {
         mUI.onResume();
         openCamera();
         setUpCameraOutputs();
-        mUI.applySurfaceChange(2, false);
+        mUI.applySurfaceChange(CameraUI.SURFACE_STATUS.SURFACE_VIEW);
         mUI.setLayout(mOutputSize);
         startBackgroundThread();
         mUI.enableShutter(true);
@@ -659,11 +659,6 @@ public class PanoCaptureModule implements CameraModule, PhotoController {
             mOrientation = newOrientation;
             mUI.setOrientation(newOrientation, true);
         }
-    }
-
-    @Override
-    public void onShowSwitcherPopup() {
-
     }
 
     @Override

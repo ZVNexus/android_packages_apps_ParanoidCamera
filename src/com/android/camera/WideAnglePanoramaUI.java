@@ -18,10 +18,7 @@ package com.android.camera;
 
 import java.lang.reflect.Method;
 
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -44,15 +41,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.android.camera.ui.CameraControls;
-import com.android.camera.ui.CameraRootView;
-import com.android.camera.ui.ModuleSwitcher;
-import com.android.camera.ui.RotateImageView;
-import com.android.camera.ui.RotateLayout;
-import com.android.camera.ui.RotateTextToast;
+import com.android.camera.ui.*;
 import com.android.camera.util.CameraUtil;
 import co.aospa.camera.R;
 
@@ -63,6 +54,7 @@ public class WideAnglePanoramaUI implements
         TextureView.SurfaceTextureListener,
         ShutterButton.OnShutterButtonListener,
         CameraRootView.MyDisplayListener,
+        PreviewGestures.SwipeListener,
         View.OnLayoutChangeListener {
 
     @SuppressWarnings("unused")
@@ -83,10 +75,10 @@ public class WideAnglePanoramaUI implements
     private PanoProgressBar mCaptureProgressBar;
     private PanoProgressBar mSavingProgressBar;
     private TextView mTooFastPrompt;
-    private View mPreviewLayout;
     private ViewGroup mReviewControl;
     private TextureView mTextureView;
     private ShutterButton mShutterButton;
+    private PreviewGestures mGestures;
     private CameraControls mCameraControls;
     private ImageView mThumbnail;
     private Bitmap mThumbnailBitmap;
@@ -99,18 +91,17 @@ public class WideAnglePanoramaUI implements
     // Color definitions.
     private int mIndicatorColor;
     private int mIndicatorColorFast;
-    private int mReviewBackground;
     private SurfaceTexture mSurfaceTexture;
     private View mPreviewCover;
 
-    private int mOrientation;
-    private int mPreviewYOffset;
     private RotateLayout mWaitingDialog;
     private RotateLayout mPanoFailedDialog;
     private Button mPanoFailedButton;
     private boolean mConfigChange = false;
 
-    /** Constructor. */
+    /**
+     * Constructor.
+     */
     public WideAnglePanoramaUI(
             CameraActivity activity,
             WideAnglePanoramaController controller,
@@ -128,25 +119,17 @@ public class WideAnglePanoramaUI implements
             mThumbnail.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (!CameraControls.isAnimating())
-                        mActivity.gotoGallery();
+                    mActivity.gotoGallery();
                 }
             });
         }
 
-        mSwitcher.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mSwitcher.showPopup();
-                mSwitcher.setOrientation(mOrientation, false);
-            }
-        });
-
-        RotateImageView muteButton = (RotateImageView)mRootView.findViewById(R.id.mute_button);
+        RotateImageView muteButton = (RotateImageView) mRootView.findViewById(R.id.mute_button);
         muteButton.setVisibility(View.GONE);
     }
 
     public void onStartCapture() {
+        mGestures.setEnabled(false);
         hideSwitcher();
         mShutterButton.setImageResource(R.drawable.shutter_button_stop);
         mCaptureIndicator.setVisibility(View.VISIBLE);
@@ -162,10 +145,10 @@ public class WideAnglePanoramaUI implements
         mCaptureIndicator.setVisibility(View.INVISIBLE);
         hideTooFastIndication();
         hideDirectionIndicators();
+        mGestures.setEnabled(true);
     }
 
     public void hideSwitcher() {
-        mSwitcher.closePopup();
         mSwitcher.setVisibility(View.INVISIBLE);
     }
 
@@ -276,7 +259,6 @@ public class WideAnglePanoramaUI implements
 
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int i, int i2) {
-
     }
 
     @Override
@@ -301,8 +283,7 @@ public class WideAnglePanoramaUI implements
     }
 
     public Point getPreviewAreaSize() {
-        return new Point(
-                mTextureView.getWidth(), mTextureView.getHeight());
+        return new Point(mTextureView.getWidth(), mTextureView.getHeight());
     }
 
     public void reset() {
@@ -359,7 +340,7 @@ public class WideAnglePanoramaUI implements
                 mActivity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
         mReviewControl.removeAllViews();
-        ((ViewGroup) mReviewControl).clearDisappearingChildren();
+        mReviewControl.clearDisappearingChildren();
         inflater.inflate(R.layout.pano_review_control, mReviewControl, true);
 
         mRootView.bringChildToFront(mCameraControls);
@@ -372,36 +353,24 @@ public class WideAnglePanoramaUI implements
     }
 
     private void setPanoramaPreviewView() {
-        int rotation = mActivity.getWindowManager().getDefaultDisplay().getRotation();
-        Display display = mActivity.getWindowManager().getDefaultDisplay();
         Point size = new Point();
-        display.getSize(size);
+        mActivity.getWindowManager().getDefaultDisplay().getRealSize(size);
 
         int width = size.x;
         int height = size.y;
-        int xOffset = 0;
-        int yOffset = 0;
-        int w = width;
-        int h = height;
 
-        h = w * 4 / 3;
-        yOffset = (height - h) / 2;
+        if ((float) height / (float) width > 4f / 3f) {
+            height = Math.round(width * 4f / 3f);
+            mCameraControls.setTransparency(false);
+            mCameraControls.setControlHeight(size.y - height);
+        } else {
+            mCameraControls.setTransparency(true);
+            mCameraControls.setControlHeight(size.y / 5);
+        }
 
-        FrameLayout.LayoutParams param = new FrameLayout.LayoutParams(w, h);
+        FrameLayout.LayoutParams param = new FrameLayout.LayoutParams(width, height);
         mTextureView.setLayoutParams(param);
-        mTextureView.setX(xOffset);
-        mTextureView.setY(yOffset);
         mPreviewBorder.setLayoutParams(param);
-        mPreviewBorder.setX(xOffset);
-        mPreviewBorder.setY(yOffset);
-        mPreviewYOffset = yOffset;
-
-        int t = mPreviewYOffset;
-        int b1 = mTextureView.getBottom() - mPreviewYOffset;
-        int r = mTextureView.getRight();
-        int b2 = mTextureView.getBottom();
-
-        mCameraControls.setPreviewRatio(1.0f, true);
     }
 
     public void resetSavingProgress() {
@@ -424,7 +393,8 @@ public class WideAnglePanoramaUI implements
     }
 
     @Override
-    public void onShutterButtonLongClick() {}
+    public void onShutterButtonLongClick() {
+    }
 
     @Override
     public void onLayoutChange(
@@ -454,11 +424,9 @@ public class WideAnglePanoramaUI implements
 
         Resources appRes = mActivity.getResources();
         mIndicatorColor = appRes.getColor(R.color.pano_progress_indication);
-        mReviewBackground = appRes.getColor(R.color.review_background);
         mIndicatorColorFast = appRes.getColor(R.color.pano_progress_indication_fast);
 
         mPreviewCover = mRootView.findViewById(R.id.preview_cover);
-        mPreviewLayout = mRootView.findViewById(R.id.pano_preview_layout);
         mReviewControl = (ViewGroup) mRootView.findViewById(R.id.pano_review_control);
         mReviewLayout = mRootView.findViewById(R.id.pano_review_layout);
         mReview = (ImageView) mRootView.findViewById(R.id.pano_reviewarea);
@@ -482,9 +450,15 @@ public class WideAnglePanoramaUI implements
         mShutterButton.setImageResource(R.drawable.btn_new_shutter);
         mShutterButton.setOnShutterButtonListener(this);
         // Hide menu and indicators.
-        mRootView.findViewById(R.id.menu).setVisibility(View.GONE);
         mRootView.findViewById(R.id.on_screen_indicators).setVisibility(View.GONE);
-        mReview.setBackgroundColor(mReviewBackground);
+        mReview.setBackgroundColor(appRes.getColor(R.color.review_background));
+        mRootView.findViewById(R.id.front_back_switcher).setVisibility(View.INVISIBLE);
+
+        RenderOverlay renderOverlay = (RenderOverlay) mRootView.findViewById(R.id.render_overlay);
+        mGestures = new PreviewGestures(
+                mActivity, null, this, null,
+                null, null);
+        renderOverlay.setGestures(mGestures);
 
         // TODO: set display change listener properly.
         ((CameraRootView) mRootView).setDisplayChangeListener(null);
@@ -492,6 +466,7 @@ public class WideAnglePanoramaUI implements
         mTextureView.setSurfaceTextureListener(this);
         mTextureView.addOnLayoutChangeListener(this);
         mCameraControls = (CameraControls) mRootView.findViewById(R.id.camera_controls);
+        mCameraControls.disableCameraControlsSettingsSwitch();
         setPanoramaPreviewView();
 
         mWaitingDialog = (RotateLayout) mRootView.findViewById(R.id.waitingDialog);
@@ -502,8 +477,6 @@ public class WideAnglePanoramaUI implements
     }
 
     private void setViews(Resources appRes) {
-        int weight = appRes.getInteger(R.integer.SRI_pano_layout_weight);
-
         mSavingProgressBar = (PanoProgressBar) mRootView.findViewById(R.id.pano_saving_progress_bar);
         mSavingProgressBar.setIndicatorWidth(0);
         mSavingProgressBar.setMaxProgress(100);
@@ -517,8 +490,6 @@ public class WideAnglePanoramaUI implements
                 mController.cancelHighResStitching();
             }
         });
-
-
     }
 
     private void showTooFastIndication() {
@@ -622,16 +593,7 @@ public class WideAnglePanoramaUI implements
         }
     }
 
-    public boolean hideSwitcherPopup() {
-        if (mSwitcher != null && mSwitcher.showsPopup()) {
-            mSwitcher.closePopup();
-            return true;
-        }
-        return false;
-   }
-
     public void setOrientation(int orientation, boolean animation) {
-        mOrientation = orientation;
         // '---------`
         // |    0    |
         // |---------| =t
@@ -646,14 +608,13 @@ public class WideAnglePanoramaUI implements
         int t = dummy.getTop();
         int b1 = dummy.getBottom();
         int r = dummy.getRight();
-        int b2 = dummy.getBottom();
         final FrameLayout progressLayout = (FrameLayout)
                 mRootView.findViewById(R.id.pano_progress_layout);
-        int pivotY = ((ViewGroup) progressLayout).getPaddingTop()
+        int pivotY = progressLayout.getPaddingTop()
                 + progressLayout.getChildAt(0).getHeight() / 2;
 
-        int[] x = { r / 2, r / 10, r * 9 / 10, r / 2 };
-        int[] y = { t / 2 + pivotY, (t + b1) / 2, (t + b1) / 2, b1 + pivotY };
+        int[] x = {r / 2, r / 10, r * 9 / 10, r / 2};
+        int[] y = {t / 2 + pivotY, (t + b1) / 2, (t + b1) / 2, b1 + pivotY};
 
         int idx1, idx2;
         int g;
@@ -681,12 +642,12 @@ public class WideAnglePanoramaUI implements
         }
 
         final View[] views1 = {
-            (View) mCaptureIndicator.getParent(),
-            mRootView.findViewById(R.id.pano_review_indicator)
+                (View) mCaptureIndicator.getParent(),
+                mRootView.findViewById(R.id.pano_review_indicator)
         };
         for (final View v : views1) {
             v.setTranslationX(x[idx1] - x[0]);
-            v.setTranslationY(y[idx1]- y[0]);
+            v.setTranslationY(y[idx1] - y[0]);
             // use relection here to build on Kitkat
             if (Build.VERSION.SDK_INT >= 21) {
                 try {
@@ -700,7 +661,7 @@ public class WideAnglePanoramaUI implements
             v.setRotation(-orientation);
         }
 
-        final View[] views2 = { progressLayout, mReviewControl };
+        final View[] views2 = {progressLayout, mReviewControl};
         for (final View v : views2) {
             v.setPivotX(r / 2);
             v.setPivotY(pivotY);
@@ -720,4 +681,23 @@ public class WideAnglePanoramaUI implements
         mCameraControls.setOrientation(orientation, animation);
         RotateTextToast.setOrientation(orientation);
     }
+
+    @Override
+    public void onSwipeDown(View v) {
+    }
+
+    @Override
+    public void onSwipeLeft(View v) {
+        mSwitcher.left();
+    }
+
+    @Override
+    public void onSwipeRight(View v) {
+        mSwitcher.right();
+    }
+
+    @Override
+    public void onSwipeUp(View v) {
+    }
+
 }
