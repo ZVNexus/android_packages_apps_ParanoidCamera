@@ -21,4 +21,17 @@
 
     <color name="background_color">#00000000</color>
 
+    <color name="module_switcher_index">#9a7f45</color>
+    <color name="module_switcher_item">#888888</color>
+
+    <color name="camera_controls_item">#ffffff</color>
+    <color name="camera_controls_bar_bg_opaque">#060606</color>
+
+    <color name="shutter_inner_circle">#ffffff</color>
+    <color name="shutter_outer_ring">#ffffff</color>
+    <color name="shutter_inner_circle_pressed">#daffffff</color>
+    <color name="shutter_video_inner_circle">#ff4733</color>
+    <color name="shutter_video_outer_ring">#ffffff</color>
+    <color name="shutter_video_inner_circle_pressed">#cf3f2f</color>
+
 </resources>

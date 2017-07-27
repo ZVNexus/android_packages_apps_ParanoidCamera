@@ -108,6 +108,8 @@ public class FocusOverlayManager {
         public void resumeFaceDetection();
     }
 
+    private int mCameraControlHeight;
+
     public interface Listener {
         public void autoFocus();
         public void cancelAutoFocus();
@@ -153,6 +155,10 @@ public class FocusOverlayManager {
 
     public void setPhotoUI(FocusUI ui) {
         mUI = ui;
+    }
+
+    public void setCameraControlHeight(int height) {
+        mCameraControlHeight = height;
     }
 
     public void setParameters(Parameters parameters) {
