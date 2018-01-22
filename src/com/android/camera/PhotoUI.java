@@ -597,7 +597,7 @@ public class PhotoUI implements PieListener,
             ViewGroup cameraControls = (ViewGroup) mRootView.findViewById(R.id.camera_controls);
             mActivity.getLayoutInflater().inflate(R.layout.review_module_control, cameraControls);
 
-            mReviewDoneButton = mRootView.findViewById(R.id.btn_done);
+            mReviewDoneButton = mRootView.findViewById(R.id.done_button);
             mReviewCancelButton = mRootView.findViewById(R.id.btn_cancel);
             mReviewRetakeButton = mRootView.findViewById(R.id.btn_retake);
             mReviewImage = (ImageView) mRootView.findViewById(R.id.review_image);
@@ -1168,9 +1168,6 @@ public class PhotoUI implements PieListener,
         if (mPieRenderer != null) {
             mPieRenderer.setBokehMode(enable);
             mIsBokehMode = enable;
-        }
-        if (mGestures != null) {
-            mGestures.setZoomEnabled(!mIsBokehMode);
         }
     }
 
