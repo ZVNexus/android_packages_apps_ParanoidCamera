@@ -455,7 +455,7 @@ public class CameraUtil {
     public static boolean isDefaultToPortrait(Activity activity) {
         Display currentDisplay = activity.getWindowManager().getDefaultDisplay();
         Point displaySize = new Point();
-        currentDisplay.getSize(displaySize);
+        currentDisplay.getRealSize(displaySize);
         int orientation = currentDisplay.getRotation();
         int naturalWidth, naturalHeight;
         if (orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180) {

@@ -25,6 +25,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.graphics.Point;
 import android.hardware.Camera.Parameters;
 import android.graphics.Rect;
 import android.os.Handler;
@@ -906,7 +907,8 @@ public class PhotoMenu extends MenuController
             rotation = (rotation + 90) % 360;
         }
         WindowManager wm = (WindowManager) mActivity.getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
+        Point point = new Point();
+        wm.getDefaultDisplay().getRealSize(point);
 
         CharSequence[] entries = pref.getEntries();
         CharSequence[] entryValues = pref.getEntryValues();
@@ -950,7 +952,7 @@ public class PhotoMenu extends MenuController
             params = new ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, size);
             previewMenuLayout.setLayoutParams(params);
             ((ViewGroup) mUI.getRootView()).addView(previewMenuLayout);
-            previewMenuLayout.setY(display.getHeight() - size);
+            previewMenuLayout.setY(point.y - size);
         }
         basic.setLayoutParams(new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
@@ -1059,7 +1061,8 @@ public class PhotoMenu extends MenuController
             rotation = (rotation + 90) % 360;
         }
         WindowManager wm = (WindowManager) mActivity.getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
+        Point point = new Point();
+        wm.getDefaultDisplay().getRealSize(point);
         CharSequence[] entries = pref.getEntries();
 
         Resources r = mActivity.getResources();
@@ -1101,7 +1104,7 @@ public class PhotoMenu extends MenuController
             params = new ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, size);
             previewMenuLayout.setLayoutParams(params);
             ((ViewGroup) mUI.getRootView()).addView(previewMenuLayout);
-            previewMenuLayout.setY(display.getHeight() - size);
+            previewMenuLayout.setY(point.y - size);
         }
         basic.setLayoutParams(new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
