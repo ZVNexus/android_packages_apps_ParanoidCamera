@@ -66,6 +66,7 @@ import com.android.camera.app.OrientationManager;
 import com.android.camera.exif.ExifInterface;
 import com.android.camera.ui.RotateTextToast;
 import com.android.camera.ui.ShutterButton;
+import com.android.camera.ui.ZoomRenderer;
 import com.android.camera.util.AccessibilityUtils;
 import com.android.camera.util.ApiHelper;
 import com.android.camera.util.CameraUtil;
@@ -1372,6 +1373,17 @@ public class VideoModule implements CameraModule,
         }
 
         switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (CameraUtil.volumeKeyForZoom(mActivity)) {
+                    ZoomRenderer renderer = mUI.getZoomRenderer();
+                    if (renderer != null) {
+                        renderer.onScaleBegin(null);
+                        renderer.setScale(keyCode == KeyEvent.KEYCODE_VOLUME_UP ?
+                                1.01f : 1f / 1.01f);
+                    }
+                }
+                return true;
             case KeyEvent.KEYCODE_CAMERA:
                 if (event.getRepeatCount() == 0) {
                     mUI.clickShutter();
@@ -1394,6 +1406,17 @@ public class VideoModule implements CameraModule,
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (CameraUtil.volumeKeyForZoom(mActivity)) {
+                    ZoomRenderer renderer = mUI.getZoomRenderer();
+                    if (renderer != null) {
+                        renderer.onScaleEnd(null);
+                    }
+                } else {
+                    mUI.pressShutter(false);
+                }
+                return true;
             case KeyEvent.KEYCODE_CAMERA:
                 mUI.pressShutter(false);
                 return true;

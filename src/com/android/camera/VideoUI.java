@@ -864,6 +864,10 @@ public class VideoUI extends CameraUI implements PieRenderer.PieListener,
         mController.updateCameraOrientation();
     }
 
+    public ZoomRenderer getZoomRenderer() {
+        return mZoomRenderer;
+    }
+
     private class ZoomChangeListener implements ZoomRenderer.OnZoomChangedListener {
         @Override
         public void onZoomValueChanged(int index) {
