@@ -83,6 +83,7 @@ import com.android.camera.ui.CountDownView.OnCountDownFinishedListener;
 import com.android.camera.ui.ModuleSwitcher;
 import com.android.camera.ui.RotateTextToast;
 import com.android.camera.ui.ShutterButton;
+import com.android.camera.ui.ZoomRenderer;
 import com.android.camera.util.ApiHelper;
 import com.android.camera.util.CameraUtil;
 import com.android.camera.util.GcamHelper;
@@ -3026,9 +3027,19 @@ public class PhotoModule
         switch (keyCode) {
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:
-                if (CameraUtil.volumeKeyShutterDisable(mActivity)) {
-                    return false;
+                if (mFirstTimeInitialized) {
+                    if (CameraUtil.volumeKeyForZoom(mActivity)) {
+                        ZoomRenderer renderer = mUI.getZoomRenderer();
+                        if (renderer != null) {
+                            renderer.onScaleBegin(null);
+                            renderer.setScale(keyCode == KeyEvent.KEYCODE_VOLUME_UP ?
+                                    1.01f : 1f / 1.01f);
+                        }
+                    } else if (event.getRepeatCount() == 0) {
+                        onShutterButtonFocus(true);
+                    }
                 }
+                return true;
             case KeyEvent.KEYCODE_FOCUS:
                 if (/*TODO: mActivity.isInCameraApp() &&*/ mFirstTimeInitialized) {
                     if (event.getRepeatCount() == 0) {
@@ -3104,9 +3115,15 @@ public class PhotoModule
         switch (keyCode) {
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:
-                if (/*mActivity.isInCameraApp() && */ mFirstTimeInitialized
-                        && !CameraUtil.volumeKeyShutterDisable(mActivity)) {
-                    onShutterButtonClick();
+                if (mFirstTimeInitialized) {
+                    if (CameraUtil.volumeKeyForZoom(mActivity)) {
+                        ZoomRenderer renderer = mUI.getZoomRenderer();
+                        if (renderer != null) {
+                            renderer.onScaleEnd(null);
+                        }
+                    } else {
+                        onShutterButtonClick();
+                    }
                     return true;
                 }
                 return false;
@@ -5307,7 +5324,7 @@ public class PhotoModule
  * TODO: Remove these
  */
 class JpegEncodingQualityMappings {
-    private static final String TAG = "JpegEncodingQualityMappings";
+    private static final String TAG = JpegEncodingQualityMappings.class.getSimpleName();
     private static final int DEFAULT_QUALITY = 85;
     private static HashMap<String, Integer> mHashMap =
             new HashMap<String, Integer>();

@@ -103,11 +103,7 @@ import com.android.camera.imageprocessor.filter.SharpshooterFilter;
 import com.android.camera.imageprocessor.filter.StillmoreFilter;
 import com.android.camera.imageprocessor.filter.UbifocusFilter;
 import com.android.camera.mpo.MpoInterface;
-import com.android.camera.ui.CountDownView;
-import com.android.camera.ui.ModuleSwitcher;
-import com.android.camera.ui.ProMode;
-import com.android.camera.ui.RotateTextToast;
-import com.android.camera.ui.TrackingFocusRenderer;
+import com.android.camera.ui.*;
 import com.android.camera.util.ApiHelper;
 import com.android.camera.util.CameraUtil;
 import com.android.camera.util.PersistUtil;
@@ -3273,9 +3269,19 @@ public class CaptureModule implements CameraModule, PhotoController,
         switch (keyCode) {
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:
-                if (CameraUtil.volumeKeyShutterDisable(mActivity)) {
-                    return false;
+                if (mFirstTimeInitialized) {
+                    if (CameraUtil.volumeKeyForZoom(mActivity)) {
+                        ZoomRenderer renderer = mUI.getZoomRenderer();
+                        if (renderer != null) {
+                            renderer.onScaleBegin(null);
+                            renderer.setScale(keyCode == KeyEvent.KEYCODE_VOLUME_UP ?
+                                    1.01f : 1f / 1.01f);
+                        }
+                    } else if (event.getRepeatCount() == 0) {
+                        onShutterButtonFocus(true);
+                    }
                 }
+                return true;
             case KeyEvent.KEYCODE_FOCUS:
                 if (mFirstTimeInitialized) {
                     if (event.getRepeatCount() == 0) {
@@ -3308,9 +3314,15 @@ public class CaptureModule implements CameraModule, PhotoController,
         switch (keyCode) {
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:
-                if (mFirstTimeInitialized
-                        && !CameraUtil.volumeKeyShutterDisable(mActivity)) {
-                    onShutterButtonClick();
+                if (mFirstTimeInitialized) {
+                    if (CameraUtil.volumeKeyForZoom(mActivity)) {
+                        ZoomRenderer renderer = mUI.getZoomRenderer();
+                        if (renderer != null) {
+                            renderer.onScaleEnd(null);
+                        }
+                    } else {
+                        onShutterButtonClick();
+                    }
                     return true;
                 }
                 return false;

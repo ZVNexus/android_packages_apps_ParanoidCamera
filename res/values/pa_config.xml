@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2011 The Android Open Source Project
+<!-- Copyright (C) 2020 Paranoid Android
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
      limitations under the License.
 -->
 <resources>
-    <bool name="show_action_bar_title">false</bool>
-    <bool name="force_count_down_sound">false</bool>
+
+    <!-- Use volume buttons for zooming. -->
+    <bool name="volume_key_for_zoom">false</bool>
+
 </resources>
