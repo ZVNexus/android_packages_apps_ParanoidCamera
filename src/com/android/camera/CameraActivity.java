@@ -203,7 +203,7 @@ public class CameraActivity extends Activity
     private static final String CAMERA_API_1_SUPPORT = "camera_api_1_support";
 
     // Pie Setting Menu enabled
-    private static boolean PIE_MENU_ENABLED = false;
+    private final static boolean PIE_MENU_ENABLED = false;
     private boolean mDeveloperMenuEnabled = false;
 
     /**
@@ -244,14 +244,10 @@ public class CameraActivity extends Activity
     private Handler mMainHandler;
     private PanoramaViewHelper mPanoramaViewHelper;
     private CameraPreviewData mCameraPreviewData;
-    private ActionBar mActionBar;
-    private OnActionBarVisibilityListener mOnActionBarVisibilityListener = null;
     private Menu mActionBarMenu;
     private ViewGroup mUndoDeletionBar;
     private boolean mIsUndoingDeletion = false;
     private boolean mIsEditActivityInProgress = false;
-    private View mPreviewCover;
-    private FrameLayout mPreviewContentLayout;
     private boolean mPaused = true;
     private boolean mForceReleaseCamera = false;
     private boolean mRedrawing = false;
@@ -280,9 +276,6 @@ public class CameraActivity extends Activity
     private UpdateThumbnailTask mUpdateThumbnailTask;
     private CircularDrawable mThumbnailDrawable;
     private Bitmap mThumbnailBitmap;
-    // FilmStripView.setDataAdapter fires 2 onDataLoaded calls before any data is actually loaded
-    // Keep track of data request here to avoid creating useless UpdateThumbnailTask.
-    private boolean mDataRequested;
     private Cursor mCursor;
 
     private boolean mAutoTestEnabled = false;
@@ -378,10 +371,6 @@ public class CameraActivity extends Activity
 
     public interface OnActionBarVisibilityListener {
         public void onActionBarVisibilityChanged(boolean isVisible);
-    }
-
-    public void setOnActionBarVisibilityListener(OnActionBarVisibilityListener listener) {
-        mOnActionBarVisibilityListener = listener;
     }
 
     public static boolean isPieMenuEnabled() {
@@ -1513,8 +1502,7 @@ public class CameraActivity extends Activity
         mFilmStripView = (FilmStripView) findViewById(R.id.filmstrip_view);
         setModuleFromIndex(moduleIndex);
 
-        mActionBar = getActionBar();
-        mActionBar.hide();
+        getActionBar().hide();
 
         if (ApiHelper.HAS_ROTATION_ANIMATION) {
             setRotationAnimation();
@@ -1554,7 +1542,6 @@ public class CameraActivity extends Activity
             mFilmStripView.setDataAdapter(mDataAdapter);
             if (!isCaptureIntent()) {
                 mDataAdapter.requestLoad(getContentResolver());
-                mDataRequested = true;
             }
         } else {
             // Put a lock placeholder as the last image by setting its date to
@@ -2340,7 +2327,7 @@ public class CameraActivity extends Activity
 
     /**
      * Show or hide the {@link com.android.camera.ui.CameraControls} using the current module's
-     * implementation of {@link com.android.camera.CameraModule.onPreviewFocusChanged}.
+     * implementation of {@link com.android.camera.CameraModule#onPreviewFocusChanged(boolean)}.
      *
      * @param showControls whether to show camera controls.
      */
@@ -2380,8 +2367,8 @@ public class CameraActivity extends Activity
     }
 
     public boolean isRecording() {
-        return (mCurrentModule instanceof VideoModule) ?
-                ((VideoModule) mCurrentModule).isRecording() : false;
+        return (mCurrentModule instanceof VideoModule)
+                && ((VideoModule) mCurrentModule).isRecording();
     }
 
     public CameraOpenErrorCallback getCameraOpenErrorCallback() {
