@@ -632,11 +632,11 @@ public class VideoModule implements CameraModule,
         for (int i = 0; i < numOfCams; i++) {
             CameraInfo info = CameraHolder.instance().getCameraInfo()[i];
             if (info.facing == CameraInfo.CAMERA_FACING_BACK) {
-                entries[i] = mActivity.getResources().getString(R.string.pref_camera_id_entry_back);
-                labels[i] = mActivity.getResources().getString(R.string.pref_camera_id_label_back);
+                entries[i] = mActivity.getString(R.string.pref_camera_id_entry_back);
+                labels[i] = mActivity.getString(R.string.pref_camera_id_label_back);
             } else {
-                entries[i] = mActivity.getResources().getString(R.string.pref_camera_id_entry_front);
-                labels[i] = mActivity.getResources().getString(R.string.pref_camera_id_label_front);
+                entries[i] = mActivity.getString(R.string.pref_camera_id_entry_front);
+                labels[i] = mActivity.getString(R.string.pref_camera_id_label_front);
             }
         }
 
@@ -660,8 +660,8 @@ public class VideoModule implements CameraModule,
         if (mOrientation != newOrientation) {
             mOrientation = newOrientation;
             Log.v(TAG, "onOrientationChanged, update parameters");
-            if ((mCameraDevice != null) && (mParameters != null)
-                    && (true == mPreviewing) && !mMediaRecorderRecording) {
+            if (mCameraDevice != null && mParameters != null
+                    && mPreviewing && !mMediaRecorderRecording) {
                 setFlipValue();
                 updatePowerMode();
                 mCameraDevice.setParameters(mParameters);
@@ -755,17 +755,11 @@ public class VideoModule implements CameraModule,
     }
 
     public boolean isPreviewReady() {
-        if ((mStartPrevPending == true || mStopPrevPending == true))
-            return false;
-        else
-            return true;
+        return !mStartPrevPending && !mStopPrevPending;
     }
 
     public boolean isRecorderReady() {
-        if ((mStartRecPending == true || mStopRecPending == true))
-            return false;
-        else
-            return true;
+        return !mStartRecPending && !mStopRecPending;
     }
 
     @Override
@@ -775,11 +769,9 @@ public class VideoModule implements CameraModule,
 
         boolean stop = mMediaRecorderRecording;
 
-        if (isPreviewReady() == false)
+        if (!isPreviewReady() || !isRecorderReady()) {
             return;
-
-        if (isRecorderReady() == false)
-            return;
+        }
 
         mUI.enableShutter(false);
 
@@ -958,19 +950,11 @@ public class VideoModule implements CameraModule,
     }
 
     private boolean is1080pEnabled() {
-        if (mProfile.quality == CamcorderProfile.QUALITY_1080P) {
-            return true;
-        } else {
-            return false;
-        }
+        return mProfile.quality == CamcorderProfile.QUALITY_1080P;
     }
 
     private boolean is720pEnabled() {
-        if (mProfile.quality == CamcorderProfile.QUALITY_720P) {
-            return true;
-        } else {
-            return false;
-        }
+        return mProfile.quality == CamcorderProfile.QUALITY_720P;
     }
 
     private boolean isSessionSupportedByEncoder(int w, int h, int fps) {
@@ -1020,9 +1004,7 @@ public class VideoModule implements CameraModule,
                 } else {
                     return false;
                 }
-            } catch (NullPointerException e) {
-                return false;
-            } catch (IndexOutOfBoundsException e) {
+            } catch (NullPointerException | IndexOutOfBoundsException e) {
                 return false;
             }
 
@@ -2239,7 +2221,7 @@ public class VideoModule implements CameraModule,
     }
 
     private static boolean isSupported(String value, List<String> supported) {
-        return supported == null ? false : supported.indexOf(value) >= 0;
+        return supported != null && supported.indexOf(value) >= 0;
     }
 
     private void setFlipValue() {
