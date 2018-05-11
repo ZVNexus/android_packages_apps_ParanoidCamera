@@ -7713,6 +7713,10 @@ public class CaptureModule implements CameraModule, PhotoController,
             mInTAF = false;
             return;
         }
+        if (mCropRegion[id] == null) {
+            Log.d(TAG, "crop region is null at " + id);
+            return;
+        }
         Point p = mUI.getSurfaceViewSize();
         int width = p.x;
         int height = p.y;
