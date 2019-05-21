@@ -94,6 +94,7 @@ public class SettingsManager implements ListMenu.SettingsListener {
 
     public static final int SCENE_MODE_AUTO_INT = 0;
     public static final int SCENE_MODE_NIGHT_INT = 5;
+    public static final int SCENE_MODE_HDR_INT = 18;
 
     public static final int TALOS_SOCID = 355;
     public static final int MOOREA_SOCID = 365;
@@ -157,6 +158,7 @@ public class SettingsManager implements ListMenu.SettingsListener {
     public static final String KEY_VIDEO_HIGH_FRAME_RATE = "pref_camera2_hfr_key";
     public static final String KEY_SELFIE_FLASH = "pref_selfie_flash_key";
     public static final String KEY_SHUTTER_SOUND = "pref_camera2_shutter_sound_key";
+    public static final String KEY_TOUCH_TRACK_FOCUS = "pref_camera2_touch_track_focus_key";
     public static final String KEY_DEVELOPER_MENU = "pref_camera2_developer_menu_key";
     public static final String KEY_RESTORE_DEFAULT = "pref_camera2_restore_default_key";
     public static final String KEY_FOCUS_DISTANCE = "pref_camera2_focus_distance_key";
@@ -200,6 +202,9 @@ public class SettingsManager implements ListMenu.SettingsListener {
     public static final String KEY_AWB_CCT_VALUE = "pref_camera2_awb_cct_key";
     public static final String KEY_AWB_DECISION_AFTER_TC_0 = "pref_camera2_awb_decision_after_tc_0";
     public static final String KEY_AWB_DECISION_AFTER_TC_1 = "pref_camera2_awb_decision_after_tc_1";
+    public static final String KEY_AEC_SENSITIVITY_0 = "pref_camera2_aec_sensitivity_0";
+    public static final String KEY_AEC_SENSITIVITY_1 = "pref_camera2_aec_sensitivity_1";
+    public static final String KEY_AEC_SENSITIVITY_2 = "pref_camera2_aec_sensitivity_2";
     public static final String KEY_STATS_VISUALIZER_VALUE = "pref_camera2_stats_visualizer_key";
 
     public static final HashMap<String, Integer> KEY_ISO_INDEX = new HashMap<String, Integer>();
@@ -221,6 +226,8 @@ public class SettingsManager implements ListMenu.SettingsListener {
     private boolean mIsMonoCameraPresent = false;
     private boolean mIsFrontCameraPresent = false;
     private boolean mHasMultiCamera = false;
+    private boolean mIsHFRSupported = false;
+    private int mHighestSpeedVideoRate = 30;
     private JSONObject mDependency;
     private int mCameraId;
     private Set<String> mFilteredKeys;
@@ -518,8 +525,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
             }
         } catch(IllegalArgumentException exception) {
             exception.printStackTrace();
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported hfrFpsTable is null.");
         }
 
         filterPreferences(cameraId);
@@ -687,8 +692,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
             sensorModeTable = mCharacteristics.get(cameraId).get(CaptureModule.sensorModeTable);
         } catch (IllegalArgumentException exception) {
             exception.printStackTrace();
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported sensorModeTable is null.");
         }
         return sensorModeTable;
     }
@@ -700,8 +703,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
                     CaptureModule.highSpeedVideoConfigs);
         } catch (IllegalArgumentException exception) {
             exception.printStackTrace();
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported highSpeedVideoConfigs is null.");
         }
         return highSpeedVideoConfigs;
     }
@@ -1196,8 +1197,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
                 Log.w(TAG, "Supported exposure range get null.");
                 return null;
             }
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported exposure range modes is null.");
         } catch(IllegalArgumentException e) {
             Log.w(TAG, "Supported exposure range modes occur IllegalArgumentException.");
         }
@@ -1212,8 +1211,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
                 Log.w(TAG, "Supported gains range get null.");
                 return null;
             }
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported gains range modes is null.");
         } catch(IllegalArgumentException e) {
             Log.w(TAG, "Supported gains range modes occur IllegalArgumentException.");
         }
@@ -1229,8 +1226,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
                 Log.w(TAG, "get exposure range modes is null.");
                 return null;
             }
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported exposure range modes is null.");
         } catch(IllegalArgumentException e) {
             Log.w(TAG, "IllegalArgumentException Supported exposure range modes is null.");
         }
@@ -1248,8 +1243,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
             }
             result[0] = range.getLower();
             result[1] = range.getUpper();
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported iso range is null.");
         } catch(IllegalArgumentException e) {
             Log.w(TAG, "IllegalArgumentException Supported iso range is null.");
         }
@@ -1266,19 +1259,21 @@ public class SettingsManager implements ListMenu.SettingsListener {
                     (facing == CameraCharacteristics.LENS_FACING_FRONT ? "front" : "back");
             fullEntries[i] = "camera " + i +" facing:"+cameraIdString;
             Byte cameraType = mCharacteristics.get(i).get(CaptureModule.logical_camera_type);
-            switch (cameraType) {
-                case CaptureModule.TYPE_DEFAULT:
-                    cameraIdString += " Default";
-                    break;
-                case CaptureModule.TYPE_RTB:
-                    cameraIdString += " RTB";
-                    break;
-                case CaptureModule.TYPE_SAT:
-                    cameraIdString += " SAT";
-                    break;
-                case CaptureModule.TYPE_VR360:
-                    cameraIdString += " VR360";
-                    break;
+            if (cameraType != null) {
+                switch (cameraType) {
+                    case CaptureModule.TYPE_DEFAULT:
+                        cameraIdString += " Default";
+                        break;
+                    case CaptureModule.TYPE_RTB:
+                        cameraIdString += " RTB";
+                        break;
+                    case CaptureModule.TYPE_SAT:
+                        cameraIdString += " SAT";
+                        break;
+                    case CaptureModule.TYPE_VR360:
+                        cameraIdString += " VR360";
+                        break;
+                }
             }
             fullEntries[i] = cameraIdString;
             fullEntryValues[i] = "" + i;
@@ -1332,11 +1327,20 @@ public class SettingsManager implements ListMenu.SettingsListener {
         ListPreference hfrPref = mPreferenceGroup.findPreference(KEY_VIDEO_HIGH_FRAME_RATE);
         if (hfrPref != null) {
             hfrPref.reloadInitialEntriesAndEntryValues();
-            if (filterUnsupportedOptions(hfrPref,
-                    getSupportedHighFrameRate())) {
+            mIsHFRSupported = !filterUnsupportedOptions(hfrPref,
+                    getSupportedHighFrameRate());
+            if (!mIsHFRSupported) {
                 mFilteredKeys.add(hfrPref.getKey());
             }
         }
+    }
+
+    public boolean isHFRSupported() {
+        return mIsHFRSupported;
+    }
+
+    public void setHFRDefaultRate() {
+        setValue(KEY_VIDEO_HIGH_FRAME_RATE, "hfr" + String.valueOf(mHighestSpeedVideoRate));
     }
 
     private void filterVideoEncoderProfileOptions() {
@@ -1503,6 +1507,7 @@ public class SettingsManager implements ListMenu.SettingsListener {
                 if (findVideoEncoder) break;
             }
 
+            String rate = "";
             try {
                 Range[] range = getSupportedHighSpeedVideoFPSRange(mCameraId, videoSize);
                 for (Range r : range) {
@@ -1512,8 +1517,11 @@ public class SettingsManager implements ListMenu.SettingsListener {
                         if (videoCapabilities != null) {
                             if (videoCapabilities.areSizeAndRateSupported(
                                     videoSize.getWidth(), videoSize.getHeight(), (int) r.getUpper())) {
-                                supported.add("hfr" + String.valueOf(r.getUpper()));
-                                supported.add("hsr" + String.valueOf(r.getUpper()));
+                                rate = String.valueOf(r.getUpper());
+                                supported.add("hfr" + rate);
+                                supported.add("hsr" + rate);
+                                mHighestSpeedVideoRate = Integer.valueOf(rate) > mHighestSpeedVideoRate ?
+                                        Integer.valueOf(rate) : mHighestSpeedVideoRate;
                             }
                         }
                     }
@@ -1532,6 +1540,8 @@ public class SettingsManager implements ListMenu.SettingsListener {
                                     videoSize.getWidth(), videoSize.getHeight(), mExtendedHFRSize[i + 2])) {
                                 supported.add(item);
                                 supported.add("hsr" + mExtendedHFRSize[i + 2]);
+                                mHighestSpeedVideoRate = mExtendedHFRSize[i + 2] > mHighestSpeedVideoRate ?
+                                        mExtendedHFRSize[i + 2] : mHighestSpeedVideoRate;
                             }
                         }
                     }
@@ -1614,8 +1624,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "cannot find vendor tag: " +
                     CaptureModule.support_video_hdr_modes.toString());
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported support_video_hdr_modes is null.");
         }
         return modes != null && modes.length > 1;
     }
@@ -1865,7 +1873,10 @@ public class SettingsManager implements ListMenu.SettingsListener {
         if (DeepZoomFilter.isSupportedStatic()) modes.add(SCENE_MODE_DEEPZOOM_INT + "");
         if (DeepPortraitFilter.isSupportedStatic()) modes.add(SCENE_MODE_DEEPPORTRAIT_INT+"");
         for (int mode : sceneModes) {
-            modes.add("" + mode);
+            //remove scene mode like "Sunset", "Night" such as, only keep "HDR" mode 	1889
+            if (mode == SCENE_MODE_HDR_INT) {
+                modes.add("" + mode);
+            }
         }
         return modes;
     }
@@ -1923,8 +1934,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
             } else {
                 Log.w(TAG, "Supported ISO range is null.");
             }
-        } catch (NullPointerException e) {
-            Log.w(TAG, "Supported ISO_AVAILABLE_MODES is null.");
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "IllegalArgumentException Supported ISO_AVAILABLE_MODES is wrong.");
         }
@@ -2037,8 +2046,6 @@ public class SettingsManager implements ListMenu.SettingsListener {
                     modes.add("" + i);
                 }
             }
-        } catch(NullPointerException e) {
-            Log.w(TAG, "Supported instant aec modes is null.");
         } catch(IllegalArgumentException e) {
             Log.w(TAG, "Supported instant aec modes is null.");
         }

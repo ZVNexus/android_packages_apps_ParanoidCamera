@@ -409,11 +409,13 @@
      <string name="pref_camera_hfr_entry_4x">HFR 120</string>
      <string name="pref_camera_hfr_entry_8x">HFR 240</string>
      <string name="pref_camera_hfr_entry_16x">HFR 480</string>
+     <string name="pref_camera_hfr_entry_32x">HFR 960</string>
      <string name="pref_camera_hfr_entry_hsr_60">HSR 60</string>
      <string name="pref_camera_hfr_entry_hsr_90">HSR 90</string>
      <string name="pref_camera_hfr_entry_hsr_120">HSR 120</string>
      <string name="pref_camera_hfr_entry_hsr_240">HSR 240</string>
      <string name="pref_camera_hfr_entry_hsr_480">HSR 480</string>
+     <string name="pref_camera_hfr_entry_hsr_960">HSR 960</string>
 
      <!-- HFR entry values. Do not translate. -->
      <string name="pref_camera_hfr_value_off">off</string>
@@ -422,11 +424,13 @@
      <string name="pref_camera_hfr_value_4x">hfr120</string>
      <string name="pref_camera_hfr_value_8x">hfr240</string>
      <string name="pref_camera_hfr_value_16x">hfr480</string>
+     <string name="pref_camera_hfr_value_32x">hfr960</string>
      <string name="pref_camera_hfr_value_hsr_60">hsr60</string>
      <string name="pref_camera_hfr_value_hsr_90">hsr90</string>
      <string name="pref_camera_hfr_value_hsr_120">hsr120</string>
      <string name="pref_camera_hfr_value_hsr_240">hsr240</string>
      <string name="pref_camera_hfr_value_hsr_480">hsr480</string>
+     <string name="pref_camera_hfr_value_hsr_960">hsr960</string>
 
      <!-- Default noise reduction setting. Do not translate. -->
      <string name="pref_camera_noise_reduction_default">off</string>
@@ -1052,6 +1056,14 @@
     <string name="pref_camera2_shutter_sound_entry_on" translatable="true">@string/pref_camera_shuttersound_entry_enable</string>
     <string name="pref_camera2_shutter_sound_entry_off" translatable="true">@string/pref_camera_shuttersound_entry_disable</string>
     <string name="pref_camera2_shutter_sound_title" translatable="true">@string/pref_camera_shuttersound_title</string>
+
+    <string name="pref_camera2_touch_track_focus_default" translatable="true">off</string>
+    <string name="pref_camera2_touch_track_focus_value_on" translatable="true">on</string>
+    <string name="pref_camera2_touch_track_focus_value_off" translatable="true">off</string>
+
+    <string name="pref_camera2_touch_track_focus_entry_on" translatable="true">Enable</string>
+    <string name="pref_camera2_touch_track_focus_off" translatable="true">Disable</string>
+    <string name="pref_camera2_touch_track_focus_title" translatable="true">Touch Track Focus</string>
 
     <string name="pref_camera2_timer_entry_off" translatable="true">Off</string>
     <string name="pref_camera2_timer_entry_2sec" translatable="true">2 seconds</string>
