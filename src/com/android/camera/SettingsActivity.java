@@ -59,6 +59,7 @@ import android.text.InputType;
 import org.codeaurora.snapcam.R;
 import com.android.camera.util.CameraUtil;
 import com.android.camera.ui.RotateTextToast;
+import com.android.camera.util.PersistUtil;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -69,6 +70,8 @@ import java.util.Arrays;
 
 public class SettingsActivity extends PreferenceActivity {
     private static final String TAG = "SettingsActivity";
+    private static final boolean DEV_LEVEL_ALL =
+            PersistUtil.getDevOptionLevel() == PersistUtil.CAMERA2_DEV_OPTION_ALL;
     public static final String CAMERA_MODULE = "camera_module";
     private SettingsManager mSettingsManager;
     private SharedPreferences mSharedPreferences;
@@ -142,8 +145,9 @@ public class SettingsActivity extends PreferenceActivity {
 
                 if ( pref.getKey().equals(SettingsManager.KEY_QCFA) ||
                         pref.getKey().equals(SettingsManager.KEY_PICTURE_FORMAT) ) {
-                    mSettingsManager.updateQcfaPictureSize();
+                    mSettingsManager.updatePictureAndVideoSize();
                     updatePreference(SettingsManager.KEY_PICTURE_SIZE);
+                    updatePreference(SettingsManager.KEY_VIDEO_QUALITY);
                 }
 
                 if ( pref.getKey().equals(SettingsManager.KEY_VIDEO_HDR_VALUE) ) {
@@ -663,16 +667,22 @@ public class SettingsActivity extends PreferenceActivity {
                 add(SettingsManager.KEY_VIDEO_HDR_VALUE);
             }
         };
-        final ArrayList<String> dualCameraOnlyList = new ArrayList<String>() {
+        final ArrayList<String> multiCameraSettingList = new ArrayList<String>() {
             {
                 add(SettingsManager.KEY_SATURATION_LEVEL);
                 add(SettingsManager.KEY_ANTI_BANDING_LEVEL);
                 add(SettingsManager.KEY_STATS_VISUALIZER_VALUE);
                 add(SettingsManager.KEY_SAVERAW);
+                add(SettingsManager.KEY_AUTO_HDR);
                 add(SettingsManager.KEY_MANUAL_EXPOSURE);
                 add(SettingsManager.KEY_SHARPNESS_CONTROL_MODE);
                 add(SettingsManager.KEY_AF_MODE);
                 add(SettingsManager.KEY_EXPOSURE_METERING_MODE);
+                add(SettingsManager.KEY_ABORT_CAPTURES);
+                add(SettingsManager.KEY_INSTANT_AEC);
+                add(SettingsManager.KEY_MANUAL_WB);
+                add(SettingsManager.KEY_AF_MODE);
+                add(SettingsManager.KEY_QCFA);
             }
         };
         final ArrayList<String> proModeOnlyList = new ArrayList<String>() {
@@ -691,7 +701,7 @@ public class SettingsActivity extends PreferenceActivity {
                 removePreferenceGroup("video", parentPre);
                 if (mDeveloperMenuEnabled && developer != null) {
                     for (String removeKey : videoOnlyList) {
-                        developer.removePreference(findPreference(removeKey));
+                        removePreference(removeKey, developer);
                     }
                 }
                 break;
@@ -701,25 +711,31 @@ public class SettingsActivity extends PreferenceActivity {
                 if (mDeveloperMenuEnabled) {
                     ArrayList<String> videoAddList = new ArrayList<>();
                     videoAddList.add(SettingsManager.KEY_ZOOM);
+                    if (DEV_LEVEL_ALL) {
+                        videoAddList.add(SettingsManager.KEY_SWITCH_CAMERA);
+                    }
                     videoAddList.addAll(videoOnlyList);
                     if (mSettingsManager.getInitialCameraId() == CaptureModule.FRONT_ID) {
                         videoAddList.remove(SettingsManager.KEY_EIS_VALUE);
                     }
                     addDeveloperOptions(developer, videoAddList);
                 }
+                removePreference(mode == CaptureModule.CameraMode.VIDEO ?
+                        SettingsManager.KEY_VIDEO_HIGH_FRAME_RATE :
+                        SettingsManager.KEY_VIDEO_TIME_LAPSE_FRAME_INTERVAL, videoPre);
                 break;
             case RTB:
                 removePreferenceGroup("video", parentPre);
-                removePreference(SettingsManager.KEY_REDEYE_REDUCTION, photoPre);
                 if (mDeveloperMenuEnabled) {
-                    addDeveloperOptions(developer, dualCameraOnlyList);
+                    ArrayList<String> RTBList = new ArrayList<>(multiCameraSettingList);
+                    RTBList.add(SettingsManager.KEY_CAPTURE_MFNR_VALUE);
+                    addDeveloperOptions(developer, RTBList);
                 }
                 break;
             case SAT:
                 removePreferenceGroup("video", parentPre);
-                removePreference(SettingsManager.KEY_REDEYE_REDUCTION, photoPre);
                 if (mDeveloperMenuEnabled) {
-                    addDeveloperOptions(developer, dualCameraOnlyList);
+                    addDeveloperOptions(developer, multiCameraSettingList);
                 }
                 break;
             case PRO_MODE:
