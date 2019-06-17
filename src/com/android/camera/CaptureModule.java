@@ -78,6 +78,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.Log;
 import android.util.Range;
 import android.util.Size;
@@ -183,6 +184,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     private static final int OPEN_CAMERA = 0;
     private static final int CANCEL_TOUCH_FOCUS = 1;
     private static final int MAX_NUM_CAM = 16;
+    private static final int CONTOUR_POINTS_COUNT = 89;
     private String DEPTH_CAM_ID;
     private static final MeteringRectangle[] ZERO_WEIGHT_3A_REGION = new MeteringRectangle[]{
             new MeteringRectangle(0, 0, 0, 0, 0)};
@@ -260,6 +262,10 @@ public class CaptureModule implements CameraModule, PhotoController,
     public static final boolean DEBUG =
             (PersistUtil.getCamera2Debug() == PersistUtil.CAMERA2_DEBUG_DUMP_LOG) ||
             (PersistUtil.getCamera2Debug() == PersistUtil.CAMERA2_DEBUG_DUMP_ALL);
+
+    private static final boolean BSGC_DEBUG = PersistUtil.getBsgcebug();
+    private static final String BSGC_TAG = "BSGC";
+
     private static final String HFR_RATE = PersistUtil.getHFRRate();
 
     MeteringRectangle[][] mAFRegions = new MeteringRectangle[MAX_NUM_CAM][];
@@ -336,14 +342,15 @@ public class CaptureModule implements CameraModule, PhotoController,
             new CameraCharacteristics.Key<>("org.codeaurora.qcamera3.quadra_cfa.is_qcfa_sensor", Byte.class);
     public static CameraCharacteristics.Key<int[]> QCFA_SUPPORT_DIMENSION =
             new CameraCharacteristics.Key<>("org.codeaurora.qcamera3.quadra_cfa.qcfa_dimension", int[].class);
-    public static CameraCharacteristics.Key<Byte> bsgcAvailable =
-            new CameraCharacteristics.Key<>("org.codeaurora.qcamera3.stats.bsgc_available", Byte.class);
     public static CameraCharacteristics.Key<int[]> support_video_hdr_modes =
             new CameraCharacteristics.Key<>("org.codeaurora.qcamera3.available_video_hdr_modes.video_hdr_modes", int[].class);
     public static CameraCharacteristics.Key<Byte> logical_camera_type =
             new CameraCharacteristics.Key<>("org.codeaurora.qcamera3.logicalCameraType.logical_camera_type", Byte.class);
     public static CaptureRequest.Key<Integer> support_video_hdr_values =
             new CaptureRequest.Key<>("org.codeaurora.qcamera3.available_video_hdr_modes.video_hdr_values", Integer.class);
+
+    public static CameraCharacteristics.Key<Byte> bsgcAvailable =
+            new CameraCharacteristics.Key<>("org.codeaurora.qcamera3.stats.bsgc_available", Byte.class);
     public static CaptureResult.Key<byte[]> blinkDetected =
             new CaptureResult.Key<>("org.codeaurora.qcamera3.stats.blink_detected", byte[].class);
     public static CaptureResult.Key<byte[]> blinkDegree =
@@ -360,6 +367,22 @@ public class CaptureModule implements CameraModule, PhotoController,
     public static CaptureResult.Key<byte[]> gazeDegree =
             new CaptureResult.Key<>("org.codeaurora.qcamera3.stats.gaze_degree",
                     byte[].class);
+    public static CaptureResult.Key<int[]> contourPoints =
+            new CaptureResult.Key<>("org.codeaurora.qcamera3.stats.contours",
+                    int[].class);
+    public static CaptureRequest.Key<Byte> facialContourEnable =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.facial_attr.contour_enable",
+                    Byte.class);
+    public static CaptureRequest.Key<Byte> smileEnable =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.facial_attr.smile_enable",
+                    Byte.class);
+    public static CaptureRequest.Key<Byte> gazeEnable =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.facial_attr.gaze_enable",
+                    Byte.class);
+    public static CaptureRequest.Key<Byte> blinkEnable =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.facial_attr.blink_enable",
+                    Byte.class);
+
     public static CaptureResult.Key<Integer> ssmCaptureComplete =
             new CaptureResult.Key<>("com.qti.chi.superslowmotionfrc.CaptureComplete", Integer.class);
     public static CaptureResult.Key<Integer> ssmProcessingComplete =
@@ -368,6 +391,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             new CaptureRequest.Key<>("com.qti.chi.superslowmotionfrc.CaptureStart", Integer.class);
     public static CaptureRequest.Key<Integer> ssmInterpFactor =
             new CaptureRequest.Key<>("com.qti.chi.superslowmotionfrc.InterpolationFactor", Integer.class);
+
     public static final CameraCharacteristics.Key<int[]> hfrFpsTable =
             new CameraCharacteristics.Key<>("org.quic.camera2.customhfrfps.info.CustomHFRFpsTable", int[].class);
     public static final CameraCharacteristics.Key<int[]> sensorModeTable  =
@@ -866,7 +890,9 @@ public class CaptureModule implements CameraModule, PhotoController,
             int id = (int) partialResult.getRequest().getTag();
             if (id == getMainCameraId()) {
                 Face[] faces = partialResult.get(CaptureResult.STATISTICS_FACES);
-                if (faces != null && isBsgcDetecionOn()) {
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"onCaptureProgressed Detected Face size = " + Integer.toString(faces == null? 0 : faces.length));
+                if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
                     updateFaceView(faces, getBsgcInfo(partialResult, faces.length));
                 } else {
                     updateFaceView(faces, null);
@@ -880,17 +906,17 @@ public class CaptureModule implements CameraModule, PhotoController,
                                        TotalCaptureResult result) {
             int id = (int) result.getRequest().getTag();
 
-
             if (id == getMainCameraId()) {
                 updateFocusStateChange(result);
                 updateAWBCCTAndgains(result);
                 Face[] faces = result.get(CaptureResult.STATISTICS_FACES);
-                if (faces != null && isBsgcDetecionOn()) {
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"onCaptureCompleted Detected Face size = " + Integer.toString(faces == null? 0 : faces.length));
+                if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
                     updateFaceView(faces, getBsgcInfo(result, faces.length));
                 } else {
                     updateFaceView(faces, null);
                 }
-
                 updateT2tTrackerView(result);
             }
 
@@ -918,8 +944,20 @@ public class CaptureModule implements CameraModule, PhotoController,
         try {
             if (mPreviewRequestBuilder[id] != null) {
                 mPreviewRequestBuilder[id].set(CaptureModule.t2t_cmd_trigger, t2tTrigger);
-                mCaptureSession[id].setRepeatingRequest(mPreviewRequestBuilder[id].build(),
-                        mCaptureCallback, mCameraHandler);
+                if (mCurrentSceneMode.mode == CameraMode.HFR && mCurrentSession != null &&
+                        mCurrentSession instanceof CameraConstrainedHighSpeedCaptureSession) {
+                    if (mCurrentSession != null) {
+                        List requestList = CameraUtil.createHighSpeedRequestList(
+                                mPreviewRequestBuilder[id].build());
+                        mCurrentSession.setRepeatingBurst(requestList, mCaptureCallback,
+                                mCameraHandler);
+                    }
+                } else {
+                    if (mCurrentSession != null) {
+                        mCurrentSession.setRepeatingRequest(mPreviewRequestBuilder[id].build(),
+                                mCaptureCallback, mCameraHandler);
+                    }
+                }
                 if (DEBUG) {
                     Log.v(TAG, "updateTouchFocusState is called");
                 }
@@ -1128,10 +1166,6 @@ public class CaptureModule implements CameraModule, PhotoController,
         public void onError(CameraDevice cameraDevice, int error) {
             int id = Integer.parseInt(cameraDevice.getId());
             Log.e(TAG, "onError " + id + " " + error);
-            if (mCamerasOpened) {
-                mCameraDevice[id].close();
-                mCameraDevice[id] = null;
-            }
             mCameraOpenCloseLock.release();
             mCamerasOpened = false;
 
@@ -1162,7 +1196,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             }
             case STATE_WAITING_AF_LOCK: {
                 Log.d(TAG, "STATE_WAITING_AF_LOCK id: " + id + " afState:" + afState + " aeState:" + aeState);
-
                 // AF_PASSIVE is added for continous auto focus mode
                 if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
                         CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState ||
@@ -1192,6 +1225,14 @@ public class CaptureModule implements CameraModule, PhotoController,
                 } else if (mLockRequestHashCode[id] == result.getRequest().hashCode()){
                     Log.i(TAG, "AF lock request result received, but not focused");
                     mLockRequestHashCode[id] = 0;
+                } else if (mSettingsManager.isFixedFocus(id)) {
+                    // CONTROL_AE_STATE can be null on some devices
+                    if(aeState == null || (aeState == CaptureResult
+                             .CONTROL_AE_STATE_CONVERGED) && isFlashOff(id)) {
+                        lockExposure(id);
+                    } else {
+                        runPrecaptureSequence(id);
+                    }
                 }
                 break;
             }
@@ -1376,6 +1417,18 @@ public class CaptureModule implements CameraModule, PhotoController,
         String value = mSettingsManager.getValue(SettingsManager.KEY_BSGC_DETECTION);
         if (value == null) return false;
         return  value.equals("enable");
+    }
+
+    private boolean isFacialContourOn() {
+        String value = mSettingsManager.getValue(SettingsManager.KEY_FACIAL_CONTOUR);
+        if (value == null) return false;
+        return  value.equals("enable");
+    }
+
+    private boolean isFacePointOn() {
+        String value = mSettingsManager.getValue(SettingsManager.KEY_FACE_DETECTION_MODE);
+        if (value == null) return false;
+        return  value.equals(String.valueOf(CaptureRequest.STATISTICS_FACE_DETECT_MODE_FULL));
     }
 
     private boolean isRawCaptureOn() {
@@ -1857,7 +1910,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             mPreviewRequestBuilder[cameraId] = mVideoRecordRequestBuilder;
             mIsPreviewingVideo = true;
             if (ApiHelper.isAndroidPOrHigher()) {
-                if (mHighSpeedCapture && ((int) mHighSpeedFPSRange.getUpper() > NORMAL_SESSION_MAX_FPS)) {
+                if (isHighSpeedRateCapture()) {
                     CaptureRequest initialRequest = mVideoRecordRequestBuilder.build();
                     int optionMode = isSSMEnabled() ? STREAM_CONFIG_SSM : SESSION_HIGH_SPEED;
                     buildConstrainedCameraSession(mCameraDevice[cameraId], optionMode,
@@ -1867,7 +1920,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                             mSessionListener, mCameraHandler, mVideoRecordRequestBuilder.build());
                 }
             } else {
-                if (mHighSpeedCapture && ((int)mHighSpeedFPSRange.getUpper() > NORMAL_SESSION_MAX_FPS)) {
+                if (isHighSpeedRateCapture()) {
                     mCameraDevice[cameraId].createConstrainedHighSpeedCaptureSession(surfaces, new
                             CameraConstrainedHighSpeedCaptureSession.StateCallback() {
 
@@ -2283,12 +2336,11 @@ public class CaptureModule implements CameraModule, PhotoController,
     private void takePicture() {
         Log.d(TAG, "takePicture");
         mUI.enableShutter(false);
-        if ((mSettingsManager.isZSLInHALEnabled() &&
+        if ((mSettingsManager.isZSLInHALEnabled() || isActionImageCapture()) &&
                 !isFlashOn(getMainCameraId()) && (mPreviewCaptureResult != null &&
                 mPreviewCaptureResult.get(CaptureResult.CONTROL_AE_STATE) !=
                      CameraMetadata.CONTROL_AE_STATE_FLASH_REQUIRED &&
-                mPreviewCaptureResult.getRequest().get(CaptureRequest.CONTROL_AE_LOCK) != Boolean.TRUE)) ||
-                isActionImageCapture()) {
+                mPreviewCaptureResult.getRequest().get(CaptureRequest.CONTROL_AE_LOCK) != Boolean.TRUE)) {
             takeZSLPictureInHAL();
         } else {
             int cameraId = mCurrentSceneMode.getCurrentId();
@@ -2488,7 +2540,15 @@ public class CaptureModule implements CameraModule, PhotoController,
             builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
             mState[id] = STATE_WAITING_TOUCH_FOCUS;
             applyFlash(builder, id);//apply flash mode and AEmode for this temp builder
-            mCaptureSession[id].capture(builder.build(), mCaptureCallback, mCameraHandler);
+            if (isHighSpeedRateCapture()) {
+                List<CaptureRequest> tafBuilderList = isSSMEnabled() ?
+                        CameraUtil.createHighSpeedRequestList(builder.build()) :
+                        ((CameraConstrainedHighSpeedCaptureSession) mCaptureSession[id]).
+                                createHighSpeedRequestList(builder.build());
+                mCaptureSession[id].captureBurst(tafBuilderList, mCaptureCallback, mCameraHandler);
+            } else {
+                mCaptureSession[id].capture(builder.build(), mCaptureCallback, mCameraHandler);
+            }
             setAFModeToPreview(id, mControlAFMode);
             Message message =
                     mCameraHandler.obtainMessage(CANCEL_TOUCH_FOCUS, id, 0, mCameraId[id]);
@@ -3494,8 +3554,15 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     private void applySettingsForPrecapture(CaptureRequest.Builder builder, int id) {
-        builder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+        String redeye = mSettingsManager.getValue(SettingsManager.KEY_REDEYE_REDUCTION);
+        if (redeye != null && redeye.equals("on")) {
+            if (DEBUG)
+            Log.d(TAG, "Red Eye Reduction is On. " +
+                    "Don't set CONTROL_AE_PRECAPTURE_TRIGGER to Start");
+        } else {
+            builder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+        }
 
         // For long shot, torch mode is used
         if (!mLongshotActive) {
@@ -3533,7 +3600,8 @@ public class CaptureModule implements CameraModule, PhotoController,
     private void applySettingsForAutoFocus(CaptureRequest.Builder builder, int id) {
         builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest
                 .CONTROL_AF_TRIGGER_START);
-        if (mCurrentSceneMode.mode == CameraMode.VIDEO) {
+        if (mCurrentSceneMode.mode == CameraMode.VIDEO ||
+                mCurrentSceneMode.mode == CameraMode.HFR) {
             Range fpsRange = mHighSpeedCapture ? mHighSpeedFPSRange : new Range(30, 30);
             builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fpsRange);
         }
@@ -3726,6 +3794,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
         mUI.hideSurfaceView();
         mZoomValue = 1f;
+        mUI.updateZoomSeekBar(1.0f);
         mFirstPreviewLoaded = false;
         if (isExitCamera) {
             stopBackgroundThread();
@@ -3927,17 +3996,13 @@ public class CaptureModule implements CameraModule, PhotoController,
             mFrameProcessor.onOpen(getFrameProcFilterId(), mPreviewSize);
         }
 
-        if(mPostProcessor.isZSLEnabled()) {
+        if(mPostProcessor.isZSLEnabled() && !isActionImageCapture()) {
             mChosenImageFormat = ImageFormat.PRIVATE;
         } else if(mPostProcessor.isFilterOn() || getFrameFilters().size() != 0 || mPostProcessor.isSelfieMirrorOn()) {
             mChosenImageFormat = ImageFormat.YUV_420_888;
         } else if(mSettingsManager.isHeifHALEncoding()) {
             mChosenImageFormat = ImageFormat.HEIC;
         } else {
-            mChosenImageFormat = ImageFormat.JPEG;
-        }
-        // if intent action is ACTION_IMAGE_CAPTURE, use HAL-ZSL to capture
-        if (isActionImageCapture()) {
             mChosenImageFormat = ImageFormat.JPEG;
         }
         setUpCameraOutputs(mChosenImageFormat);
@@ -4123,7 +4188,15 @@ public class CaptureModule implements CameraModule, PhotoController,
     @Override
     public void onZoomChanged(float requestedZoom) {
         mZoomValue = requestedZoom;
+        mUI.updateZoomSeekBar(mZoomValue);
         applyZoomAndUpdate();
+    }
+
+    public void updateZoomChanged(float requestedZoom) {
+        if (Math.abs(mZoomValue - requestedZoom) > 0.05) {
+            mZoomValue = requestedZoom;
+            applyZoomAndUpdate();
+        }
     }
 
     private boolean isInMode(int cameraId) {
@@ -4336,22 +4409,67 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     private ExtendedFace[] getBsgcInfo(CaptureResult captureResult, int size) {
-        ExtendedFace []extendedFaces = new ExtendedFace[size];
-        byte[] blinkDetectedArray = captureResult.get(blinkDetected);
-        byte[] blinkDegreesArray = captureResult.get(blinkDegree);
-        int[] gazeDirectionArray = captureResult.get(gazeDirection);
-        byte[] gazeAngleArray = captureResult.get(gazeAngle);
-        byte[] smileDegreeArray = captureResult.get(smileDegree);
-        byte[] smileConfidenceArray = captureResult.get(smileConfidence);
-        for(int i=0;i<size;i++) {
-            ExtendedFace tmp = new ExtendedFace(i);
-            tmp.setBlinkDetected(blinkDetectedArray[i]);
-            tmp.setBlinkDegree(blinkDegreesArray[2*i], blinkDegreesArray[2*i+1]);
-            tmp.setGazeDirection(gazeDirectionArray[3*i], gazeDirectionArray[3*i+1], gazeDirectionArray[3*i+2]);
-            tmp.setGazeAngle(gazeAngleArray[i]);
-            tmp.setSmileDegree(smileDegreeArray[i]);
-            tmp.setSmileConfidence(smileConfidenceArray[i]);
-            extendedFaces[i] = tmp;
+        if (captureResult == null || size == 0) {
+            if(BSGC_DEBUG)
+                Log.d(BSGC_TAG,"extendface size ="+size);
+            return null;
+        }
+        ExtendedFace[] extendedFaces = new ExtendedFace[size];
+        boolean bsgEnable = isBsgcDetecionOn();
+        boolean contourEnable = isFacialContourOn();
+        boolean facePointEnable = isFacePointOn();
+        try {
+            if (bsgEnable) {
+                byte[] blinkDetectedArray = captureResult.get(blinkDetected);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"blinkDetectedArray="+Arrays.toString(blinkDetectedArray));
+                byte[] blinkDegreesArray = captureResult.get(blinkDegree);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"blinkDegreesArray="+Arrays.toString(blinkDegreesArray));
+                int[] gazeDirectionArray = captureResult.get(gazeDirection);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"gazeDirectionArray="+Arrays.toString(gazeDirectionArray));
+                byte[] gazeAngleArray = captureResult.get(gazeAngle);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"gazeAngleArray="+Arrays.toString(gazeAngleArray));
+                byte[] smileDegreeArray = captureResult.get(smileDegree);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"smileDegreeArray="+Arrays.toString(smileDegreeArray));
+                byte[] smileConfidenceArray = captureResult.get(smileConfidence);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"smileConfidenceArray="+Arrays.toString(smileConfidenceArray));
+                for (int i = 0; i < size; i++) {
+                    ExtendedFace tmp = new ExtendedFace(i);
+                    if (bsgEnable) {
+                        tmp.setBlinkDetected(blinkDetectedArray[i]);
+                        tmp.setBlinkDegree(blinkDegreesArray[2 * i], blinkDegreesArray[2 * i + 1]);
+                        tmp.setGazeDirection(gazeDirectionArray[3 * i], gazeDirectionArray[3 * i + 1], gazeDirectionArray[3 * i + 2]);
+                        tmp.setGazeAngle(gazeAngleArray[i]);
+                        tmp.setSmileDegree(smileDegreeArray[i]);
+                        tmp.setSmileConfidence(smileConfidenceArray[i]);
+                        extendedFaces[i] = tmp;
+                    }
+                }
+            }
+            if (contourEnable || facePointEnable) {
+                int[] contourPoints = captureResult.get(CaptureModule.contourPoints);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"contourPoints="+Arrays.toString(contourPoints));
+                int[] landmarkPoints = captureResult.get(CaptureResult.STATISTICS_FACE_LANDMARKS);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG,"landmarkPoints="+Arrays.toString(landmarkPoints));
+                ExtendedFace tmp;
+                if (extendedFaces[0] == null) {
+                    tmp = new ExtendedFace(0);
+                    extendedFaces[0] = tmp;
+                } else {
+                    tmp = extendedFaces[0];
+                }
+                tmp.setContour(contourPoints);
+                tmp.setLandMarks(landmarkPoints);
+            }
+        } catch (IllegalArgumentException|NullPointerException e){
+            e.printStackTrace();
         }
         return extendedFaces;
     }
@@ -4784,8 +4902,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                             .createHighSpeedRequestList(mVideoRecordRequestBuilder.build());
                     mCurrentSession.setRepeatingBurst(list,mCaptureCallback, mCameraHandler);
                 } else {
-                    if (mHighSpeedCapture &&
-                            ((int) mHighSpeedFPSRange.getUpper() > NORMAL_SESSION_MAX_FPS)) {
+                    if (isHighSpeedRateCapture()) {
                         slowMoRequests = mSuperSlomoCapture ? CameraUtil
                                 .createHighSpeedRequestList(mVideoRecordRequestBuilder.build()) :
                                 ((CameraConstrainedHighSpeedCaptureSession) mCurrentSession).
@@ -5134,6 +5251,10 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
     }
 
+    public boolean isHSRMode() {
+        return mHighSpeedRecordingMode && !mSuperSlomoCapture;
+    }
+
     private void updateProgressBar(boolean show) {
         mActivity.runOnUiThread(new Runnable() {
             @Override
@@ -5168,7 +5289,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             mVideoPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                     mHighSpeedFPSRange);
         }
-        if (!mHighSpeedCapture || !((int)mHighSpeedFPSRange.getUpper() > NORMAL_SESSION_MAX_FPS)) {
+        if (!isHighSpeedRateCapture()) {
             applyVideoCommentSettings(mVideoPreviewRequestBuilder, cameraId);
         }
     }
@@ -5187,6 +5308,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         applyVideoEIS(builder);
         applyVideoHDR(builder);
         applyEarlyPCR(builder);
+        applyTouchTrackFocus(builder);
     }
 
     private void applyVideoHDR(CaptureRequest.Builder builder) {
@@ -6884,9 +7006,40 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void applyFaceDetection(CaptureRequest.Builder request) {
         String value = mSettingsManager.getValue(SettingsManager.KEY_FACE_DETECTION);
+        String mode = mSettingsManager.getValue(SettingsManager.KEY_FACE_DETECTION_MODE);
+        String bsgc = mSettingsManager.getValue(SettingsManager.KEY_BSGC_DETECTION);
+        String facialContour = mSettingsManager.getValue(SettingsManager.KEY_FACIAL_CONTOUR);
         if (value != null && value.equals("on")) {
-            request.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE,
-                    CaptureRequest.STATISTICS_FACE_DETECT_MODE_SIMPLE);
+            try {
+                int modeValue = CaptureRequest.STATISTICS_FACE_DETECT_MODE_SIMPLE;
+                if (mode != null)
+                    modeValue = Integer.valueOf(mode);
+                request.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE,
+                        modeValue);
+
+                if (bsgc != null) {
+                    final byte bsgc_enable;
+                    if (bsgc.equals("enable")) {
+                        bsgc_enable = 1;
+                    } else {
+                        bsgc_enable = 0;
+                    }
+                    request.set(CaptureModule.smileEnable, bsgc_enable);
+                    request.set(CaptureModule.gazeEnable, bsgc_enable);
+                    request.set(CaptureModule.blinkEnable, bsgc_enable);
+                }
+
+                if (facialContour != null) {
+                    final byte facialContour_enable;
+                    if (facialContour.equals("enable")) {
+                        facialContour_enable = 1;
+                    } else {
+                        facialContour_enable = 0;
+                    }
+                    request.set(CaptureModule.facialContourEnable, facialContour_enable);
+                }
+            } catch (IllegalArgumentException e) {
+            }
         }
     }
 
@@ -6985,8 +7138,20 @@ public class CaptureModule implements CameraModule, PhotoController,
                 registerRect[3] = mT2TrackRegions[id][0].getHeight();
                 mPreviewRequestBuilder[id].set(CaptureModule.t2t_register_roi, registerRect);
                 mPreviewRequestBuilder[id].set(CaptureModule.t2t_cmd_trigger, t2tTrigger);
-                mCaptureSession[id].setRepeatingRequest(mPreviewRequestBuilder[id].build(),
-                        mCaptureCallback, mCameraHandler);
+                if (mCurrentSceneMode.mode == CameraMode.HFR && mCurrentSession != null &&
+                        mCurrentSession instanceof CameraConstrainedHighSpeedCaptureSession) {
+                    if (mCurrentSession != null) {
+                        List requestList = CameraUtil.createHighSpeedRequestList(
+                                mPreviewRequestBuilder[id].build());
+                        mCurrentSession.setRepeatingBurst(requestList, mCaptureCallback,
+                                mCameraHandler);
+                    }
+                } else {
+                    if (mCurrentSession != null) {
+                        mCurrentSession.setRepeatingRequest(mPreviewRequestBuilder[id].build(),
+                                mCaptureCallback, mCameraHandler);
+                    }
+                }
                 if (DEBUG) {
                     Log.v(TAG, "triggerTouchFocus is called. ROI " + registerRect[0] + " "
                             + registerRect[1] + " " + registerRect[2] + " " + registerRect[3]);
@@ -7024,7 +7189,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
         x += (width - p.x) / 2;
         y += (height - p.y) / 2;
-        mT2TrackRegions[id] = afaeRectangle(x, y, width, height, 1f, mCropRegion[id], id);
+        mT2TrackRegions[id] = afaeRectangle(x, y, width, height, 1.25f, mCropRegion[id], id);
         if (DEBUG) {
             Log.d(TAG, "transformTouchCoords " + mT2TrackRegions[id][0].getX() + " " +
                     mT2TrackRegions[id][0].getY() + " " + mT2TrackRegions[id][0].getWidth() +
@@ -7785,6 +7950,14 @@ public class CaptureModule implements CameraModule, PhotoController,
         return mSuperSlomoCapture && (int)mHighSpeedFPSRange.getUpper() > NORMAL_SESSION_MAX_FPS;
     }
 
+    /**
+     * if it is HFR or HSR recording and rate > 60
+     * @return if it is high speed rate recording
+     */
+    private boolean isHighSpeedRateCapture() {
+        return mHighSpeedCapture && (int)mHighSpeedFPSRange.getUpper() > NORMAL_SESSION_MAX_FPS;
+    }
+
     public void onRenderComplete(DPImage dpimage, boolean isError) {
         dpimage.mImage.close();
         if(isError) {
@@ -7896,6 +8069,13 @@ public class CaptureModule implements CameraModule, PhotoController,
         } else {
             restartAll();
         }
+        if (mCurrentSceneMode.mode == CameraMode.PRO_MODE ||
+                mCurrentSceneMode.mode == CameraMode.RTB) {
+            mUI.hideZoomSeekBar();
+        } else {
+            mUI.showZoomSeekBar();
+        }
+        mUI.updateZoomSeekBar(1.0f);
         return 1;
     }
 
