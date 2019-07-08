@@ -90,6 +90,8 @@ import com.android.camera.ui.ZoomRenderer;
 import com.android.camera.ui.TouchTrackFocusRenderer;
 import com.android.camera.util.CameraUtil;
 import com.android.camera.deepportrait.GLCameraPreview;
+import com.android.camera.util.PersistUtil;
+
 import org.codeaurora.snapcam.R;
 
 import java.util.ArrayList;
@@ -104,6 +106,8 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         PauseButton.OnPauseButtonListener {
     private static final int HIGHLIGHT_COLOR = 0xff33b5e5;
     private static final String TAG = "SnapCam_CaptureUI";
+    private static final boolean DEV_LEVEL_ALL =
+            PersistUtil.getDevOptionLevel() == PersistUtil.CAMERA2_DEV_OPTION_ALL;
     private static final int FILTER_MENU_NONE = 0;
     private static final int FILTER_MENU_IN_ANIMATION = 1;
     private static final int FILTER_MENU_ON = 2;
@@ -509,6 +513,9 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
                     mZoomIndex = 0;
                 mZoomSwitch.setText(entries[mZoomIndex]);
                 mModule.onZoomChanged(Float.valueOf(values[mZoomIndex]));
+                if (mZoomRenderer != null) {
+                    mZoomRenderer.setZoom(Float.valueOf(values[mZoomIndex]));
+                }
             }
         });
 
@@ -634,11 +641,14 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         mZoomSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                mModule.updateZoomChanged((progress + 10) / 10f);
+                float zoomValue = (progress + 10) / 10f;
+                mModule.updateZoomChanged(zoomValue);
+                if (mZoomRenderer != null) {
+                    mZoomRenderer.setZoom(zoomValue);
+                }
                 int zoomSig = Math.round((progress + 10)) / 10;
                 int zoomFraction = Math.round(progress + 10) % 10;
                 String txt = zoomSig + "." + zoomFraction + "x";
-
                 if (mZoomValueText != null) {
                     mZoomValueText.setText(txt);
                 }
@@ -650,9 +660,13 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                mModule.updateZoomChanged((seekBar.getProgress() + 10) / 10f);
+                float zoomValue = (seekBar.getProgress() + 10) / 10f;
+                mModule.updateZoomChanged(zoomValue);
+                if (mZoomRenderer != null) {
+                    mZoomRenderer.setZoom(zoomValue);
+                }
                 if (mZoomValueText != null) {
-                    mZoomValueText.setText((seekBar.getProgress() + 10) / 10f + "x");
+                    mZoomValueText.setText(zoomValue + "x");
                 }
             }
         });
@@ -1284,6 +1298,9 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
                 mFlashButton.setVisibility(View.INVISIBLE);
                 mMuteButton.setVisibility(View.INVISIBLE);
                 mPauseButton.setVisibility(View.INVISIBLE);
+                if (!DEV_LEVEL_ALL) {
+                    mFrontBackSwitcher.setVisibility(View.INVISIBLE);
+                }
                 break;
             case VIDEO:
             case HFR:

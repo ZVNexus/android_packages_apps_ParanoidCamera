@@ -2124,6 +2124,12 @@ public class CaptureModule implements CameraModule, PhotoController,
         mSettingsManager.init();
     }
 
+    private boolean frontIsAllowed() {
+        return mCurrentSceneMode.mode == CameraMode.DEFAULT ||
+                mCurrentSceneMode.mode == CameraMode.VIDEO ||
+                mCurrentSceneMode.mode == CameraMode.HFR;
+    }
+
     public boolean isRefocus() {
         return mIsRefocus;
     }
@@ -2834,9 +2840,9 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void captureStillPictureForLongshot(CaptureRequest.Builder captureBuilder, int id) throws CameraAccessException{
         List<CaptureRequest> burstList = new ArrayList<>();
-        boolean isBurstShotFpsEnable = PersistUtil.isBurstShotFpsEnabled();
+        int burstShotFpsNums = PersistUtil.isBurstShotFpsNums();
         for (int i = 0; i < PersistUtil.getLongshotShotLimit(); i++) {
-            if (isBurstShotFpsEnable) {
+            for (int j = 0; j < burstShotFpsNums; j++) {
                 mPreviewRequestBuilder[id].setTag("preview");
                 burstList.add(mPreviewRequestBuilder[id].build());
             }
@@ -3803,6 +3809,10 @@ public class CaptureModule implements CameraModule, PhotoController,
         setProModeVisible();
         mJpegImageData = null;
         closeVideoFileDescriptor();
+        if (mIntentMode != CaptureModule.INTENT_MODE_NORMAL && isExitCamera) {
+            mActivity.setResultEx(Activity.RESULT_CANCELED, new Intent());
+            mActivity.finish();
+        }
     }
 
     public void onResumeBeforeSuper() {
@@ -4026,6 +4036,14 @@ public class CaptureModule implements CameraModule, PhotoController,
         Log.d(TAG, "onResume " + (mCurrentSceneMode != null ? mCurrentSceneMode.mode : "null")
         + (resumeFromRestartAll ? " isResumeFromRestartAll" : ""));
         reinit();
+        if (!isBackCamera() && !frontIsAllowed()) {
+            Log.d(TAG, "Current Mode " + mCurrentSceneMode.mode + "not support Front camera");
+            if (!resumeFromRestartAll) {
+                startBackgroundThread();
+            }
+            mUI.switchToPhotoModeDueToError(true);
+            return;
+        }
         mDeepPortraitMode = isDeepPortraitMode();
         initializeValues();
         updatePreviewSize();
@@ -8039,7 +8057,12 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     public CameraMode getCurrenCameraMode() {
-        return mCurrentSceneMode.mode;
+        if (mCurrentSceneMode == null) {
+            Log.w(TAG, "getCurrenCameraMode mCurrentSceneMode is NULL retrun CameraMode.DEFAULT");
+            return CameraMode.DEFAULT;
+        } else {
+            return mCurrentSceneMode.mode;
+        }
     }
 
     public OnItemClickListener getModeItemClickListener() {
@@ -8082,6 +8105,8 @@ public class CaptureModule implements CameraModule, PhotoController,
     public void setCurrentSceneModeOnly(int mode) {
         mCurrentSceneMode = mSceneCameraIds.get(mode);
         mCurrentModeIndex = mode;
+        CURRENT_ID = mCurrentSceneMode.getCurrentId();
+        CURRENT_MODE = mCurrentSceneMode.mode;
     }
 
     public int getCurrentModeIndex() {
