@@ -685,8 +685,8 @@ public class SettingsActivity extends PreferenceActivity {
                 add(SettingsManager.KEY_INSTANT_AEC);
                 add(SettingsManager.KEY_MANUAL_WB);
                 add(SettingsManager.KEY_AF_MODE);
+                add(SettingsManager.KEY_CAPTURE_MFNR_VALUE);
                 add(SettingsManager.KEY_QCFA);
-                add(SettingsManager.KEY_TOUCH_TRACK_FOCUS);
             }
         };
         final ArrayList<String> proModeOnlyList = new ArrayList<String>() {
@@ -701,6 +701,12 @@ public class SettingsActivity extends PreferenceActivity {
         PreferenceScreen parentPre = getPreferenceScreen();
         CaptureModule.CameraMode mode =
                 (CaptureModule.CameraMode) getIntent().getSerializableExtra(CAMERA_MODULE);
+
+        if (mSettingsManager.getInitialCameraId() == CaptureModule.FRONT_ID) {
+            removePreference(SettingsManager.KEY_TOUCH_TRACK_FOCUS, photoPre);
+            removePreference(SettingsManager.KEY_TOUCH_TRACK_FOCUS, videoPre);
+        }
+
         switch (mode) {
             case DEFAULT:
                 removePreferenceGroup("video", parentPre);
@@ -736,6 +742,7 @@ public class SettingsActivity extends PreferenceActivity {
                 break;
             case RTB:
                 removePreferenceGroup("video", parentPre);
+                removePreference(SettingsManager.KEY_TOUCH_TRACK_FOCUS, photoPre);
                 if (mDeveloperMenuEnabled) {
                     ArrayList<String> RTBList = new ArrayList<>(multiCameraSettingList);
                     RTBList.add(SettingsManager.KEY_CAPTURE_MFNR_VALUE);
@@ -750,6 +757,7 @@ public class SettingsActivity extends PreferenceActivity {
                 break;
             case PRO_MODE:
                 removePreferenceGroup("video", parentPre);
+                removePreference(SettingsManager.KEY_TOUCH_TRACK_FOCUS, photoPre);
                 if (mDeveloperMenuEnabled) {
                     addDeveloperOptions(developer, proModeOnlyList);
                 }
