@@ -1327,6 +1327,14 @@ public class CaptureModule implements CameraModule, PhotoController,
                         CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) &&
                         (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_LOCKED)) {
                     checkAfAeStatesAndCapture(id);
+                } else if (mSettingsManager.isFixedFocus(id)) {
+                    // CONTROL_AE_STATE can be null on some devices
+                    if(aeState == null || (aeState == CaptureResult
+                            .CONTROL_AE_STATE_CONVERGED) && isFlashOff(id)) {
+                        lockExposure(id);
+                    } else {
+                        runPrecaptureSequence(id);
+                    }
                 }
                 break;
             }
@@ -4915,7 +4923,8 @@ public class CaptureModule implements CameraModule, PhotoController,
                 setUpVideoCaptureRequestBuilder(mVideoRecordRequestBuilder, cameraId);
                 int deviceSocId = mSettingsManager.getDeviceSocId();
                 if (deviceSocId == SettingsManager.TALOS_SOCID ||
-                        deviceSocId == SettingsManager.MOOREA_SOCID) {
+                        deviceSocId == SettingsManager.MOOREA_SOCID ||
+                        deviceSocId == SettingsManager.SAIPAN_SOCID) {
                     List list = CameraUtil
                             .createHighSpeedRequestList(mVideoRecordRequestBuilder.build());
                     mCurrentSession.setRepeatingBurst(list,mCaptureCallback, mCameraHandler);
@@ -6096,28 +6105,31 @@ public class CaptureModule implements CameraModule, PhotoController,
             return;
         }
 
-        if (mIsRecordingVideo) {
-            if (mUI.isShutterEnabled()) {
-                captureVideoSnapshot(getMainCameraId());
-            }
-        } else {
-            String timer = mSettingsManager.getValue(SettingsManager.KEY_TIMER);
-
-            int seconds = Integer.parseInt(timer);
-            // When shutter button is pressed, check whether the previous countdown is
-            // finished. If not, cancel the previous countdown and start a new one.
-            if (mUI.isCountingDown()) {
-                mUI.cancelCountDown();
-            }
-            if (seconds > 0) {
-                mUI.startCountDown(seconds, true);
-            } else {
-                if(mChosenImageFormat == ImageFormat.YUV_420_888 && mPostProcessor.isItBusy()) {
-                    warningToast("It's still busy processing previous scene mode request.");
-                    return;
+        if (mCurrentSceneMode.mode == CameraMode.HFR ||
+                mCurrentSceneMode.mode == CameraMode.VIDEO) {
+            if (!mHighSpeedCapture) {
+                if (mUI.isShutterEnabled()) {
+                    captureVideoSnapshot(getMainCameraId());
                 }
-                checkSelfieFlashAndTakePicture();
             }
+            return;
+        }
+
+        String timer = mSettingsManager.getValue(SettingsManager.KEY_TIMER);
+        int seconds = Integer.parseInt(timer);
+        // When shutter button is pressed, check whether the previous countdown is
+        // finished. If not, cancel the previous countdown and start a new one.
+        if (mUI.isCountingDown()) {
+            mUI.cancelCountDown();
+        }
+        if (seconds > 0) {
+            mUI.startCountDown(seconds, true);
+        } else {
+            if (mChosenImageFormat == ImageFormat.YUV_420_888 && mPostProcessor.isItBusy()) {
+                warningToast("It's still busy processing previous scene mode request.");
+                return;
+            }
+            checkSelfieFlashAndTakePicture();
         }
     }
 
@@ -8092,14 +8104,18 @@ public class CaptureModule implements CameraModule, PhotoController,
         } else {
             restartAll();
         }
+        updateZoomSeekBarVisible();
+        mUI.updateZoomSeekBar(1.0f);
+        return 1;
+    }
+
+    public void updateZoomSeekBarVisible() {
         if (mCurrentSceneMode.mode == CameraMode.PRO_MODE ||
                 mCurrentSceneMode.mode == CameraMode.RTB) {
             mUI.hideZoomSeekBar();
         } else {
             mUI.showZoomSeekBar();
         }
-        mUI.updateZoomSeekBar(1.0f);
-        return 1;
     }
 
     public void setCurrentSceneModeOnly(int mode) {
