@@ -115,6 +115,7 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
     private static final int CLICK_THRESHOLD = 200;
     private static final int AUTOMATIC_MODE = 0;
     private static final String[] AWB_INFO_TITLE = {" R gain "," G gain "," B gain "," CCT "};
+    private static final String[] AEC_INFO_TITLE = {" Lux "," Gain "," Sensitivity "," Exp Time "};
     private CameraActivity mActivity;
     private View mRootView;
     private View mPreviewCover;
@@ -254,6 +255,12 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
     private TextView mStatsAwbBText;
     private TextView mStatsAwbCcText;
     private TextView mZoomValueText;
+
+    private View mStatsAecInfo;
+    private TextView mStatsAecLuxText;
+    private TextView mStatsAeclinearGainText;
+    private TextView mStatsAecSensitivityText;
+    private TextView mStatsAecExposureTimeText;
 
     private LinearLayout mZoomLinearLayout;
 
@@ -451,6 +458,12 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         mStatsAwbBText = mRootView.findViewById(R.id.stats_awb_b_text);
         mStatsAwbCcText = mRootView.findViewById(R.id.stats_awb_cc_text);
 
+        mStatsAecInfo = mRootView.findViewById(R.id.stats_aec_info);
+        mStatsAecLuxText= mRootView.findViewById(R.id.stats_aec_lux_text);
+        mStatsAeclinearGainText= mRootView.findViewById(R.id.stats_aec_linear_gain_text);
+        mStatsAecSensitivityText= mRootView.findViewById(R.id.stats_aec_sensitivity_text);
+        mStatsAecExposureTimeText= mRootView.findViewById(R.id.stats_aec_exp_time_text);
+
         mMuteButton = (RotateImageView)mRootView.findViewById(R.id.mute_button);
         mMuteButton.setVisibility(View.VISIBLE);
         setMuteButtonResource(!mModule.isAudioMute());
@@ -544,6 +557,7 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
                 public void onClick(View view) {
                     mPreviewLayout.setVisibility(View.GONE);
                     mReviewImage.setImageBitmap(null);
+                    mModule.setJpegImageData(null);
                     if (intentMode == CaptureModule.INTENT_MODE_VIDEO) {
                         mModule.onRetakeVideo();
                     }
@@ -682,6 +696,9 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         if (mZoomSeekBar != null) {
             mZoomSeekBar.setVisibility(View.GONE);
         }
+        if (mZoomSwitch != null) {
+            mZoomSwitch.setVisibility(View.GONE);
+        }
     }
 
     public void showZoomSeekBar() {
@@ -693,6 +710,9 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         }
         if (mZoomSeekBar != null) {
             mZoomSeekBar.setVisibility(View.VISIBLE);
+        }
+        if (mZoomSwitch != null) {
+            mZoomSwitch.setVisibility(View.VISIBLE);
         }
     }
 
@@ -749,11 +769,30 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         mStatsAwbCcText.setText(AWB_INFO_TITLE[3]+info[3]);
     }
 
+    public void updateAecInfoText(String[] info) {
+        if (info == null || info.length <10)
+            return;
+        mStatsAecLuxText.setText(AEC_INFO_TITLE[0]+info[0]);
+        mStatsAeclinearGainText.setText(AEC_INFO_TITLE[1]+info[1]+" "+info[2]+" "+info[3]);
+        mStatsAecSensitivityText.setText(AEC_INFO_TITLE[2]+info[4]+" "+info[5]+" "+info[6]);
+        mStatsAecExposureTimeText.setText(AEC_INFO_TITLE[3]+info[7]+" "+info[8]+" "+info[9]);
+    }
+
     public void updateAWBInfoVisibility(int visibility) {
         mActivity.runOnUiThread(new Runnable() {
             public void run() {
                 if(mStatsAwbInfo != null) {
                     mStatsAwbInfo.setVisibility(visibility);
+                }
+            }
+        });
+    }
+
+    public void updateAECInfoVisibility(int visibility) {
+        mActivity.runOnUiThread(new Runnable() {
+            public void run() {
+                if(mStatsAecInfo != null) {
+                    mStatsAecInfo.setVisibility(visibility);
                 }
             }
         });
@@ -1077,7 +1116,7 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
             mVideoButton.setImageResource(R.drawable.video_stop);
             mRecordingTimeView.setText("00:00");
             mRecordingTimeRect.setVisibility(View.VISIBLE);
-            mMuteButton.setVisibility(mModule.isHSRMode() ? View.VISIBLE : View.INVISIBLE);
+            mMuteButton.setVisibility(mModule.isHSRMode() ? View.INVISIBLE : View.VISIBLE);
             setMuteButtonResource(!mModule.isAudioMute());
         } else {
             mFlashButton.setVisibility(View.VISIBLE);
@@ -2303,7 +2342,8 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
     }
 
     public void swipeCameraMode(int move) {
-        if (mIsVideoUI || !mModule.getCameraModeSwitcherAllowed()) {
+        if (mIsVideoUI || !mModule.getCameraModeSwitcherAllowed() ||
+                mModule.getCurrentIntentMode() != CaptureModule.INTENT_MODE_NORMAL) {
             return;
         }
         int index = mModule.getCurrentModeIndex() + move;

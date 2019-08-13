@@ -153,19 +153,6 @@ public class SettingsActivity extends PreferenceActivity {
                     updatePreference(SettingsManager.KEY_VIDEO_QUALITY);
                 }
 
-                if ( pref.getKey().equals(SettingsManager.KEY_VIDEO_HDR_VALUE) ) {
-                    ListPreference autoHdrPref = (ListPreference) findPreference(
-                            mSettingsManager.KEY_AUTO_HDR);
-                    if (pref.getSummary().equals("enable")) {
-                        // when enable the Video HDR, app will disable the AUTO HDR.
-                        autoHdrPref.setEnabled(false);
-                        autoHdrPref.setValue("disable");
-                        mSettingsManager.setValue(mSettingsManager.KEY_AUTO_HDR, "disable");
-                    } else {
-                        autoHdrPref.setEnabled(true);
-                    }
-                }
-
                 if ( (pref.getKey().equals(SettingsManager.KEY_MANUAL_WB)) ) {
                     updateManualWBSettings();
                 }
@@ -687,6 +674,9 @@ public class SettingsActivity extends PreferenceActivity {
                 add(SettingsManager.KEY_AF_MODE);
                 add(SettingsManager.KEY_CAPTURE_MFNR_VALUE);
                 add(SettingsManager.KEY_QCFA);
+                add(SettingsManager.KEY_FACE_DETECTION_MODE);
+                add(SettingsManager.KEY_BSGC_DETECTION);
+                add(SettingsManager.KEY_FACIAL_CONTOUR);
             }
         };
         final ArrayList<String> proModeOnlyList = new ArrayList<String>() {
@@ -711,6 +701,9 @@ public class SettingsActivity extends PreferenceActivity {
             case DEFAULT:
                 removePreferenceGroup("video", parentPre);
                 if (mDeveloperMenuEnabled && developer != null) {
+                    if (!DEV_LEVEL_ALL) {
+                        removePreference(SettingsManager.KEY_SWITCH_CAMERA, developer);
+                    }
                     for (String removeKey : videoOnlyList) {
                         removePreference(removeKey, developer);
                     }
@@ -726,6 +719,7 @@ public class SettingsActivity extends PreferenceActivity {
                         videoAddList.add(SettingsManager.KEY_SWITCH_CAMERA);
                     }
                     videoAddList.addAll(videoOnlyList);
+                    videoAddList.add(SettingsManager.KEY_ANTI_BANDING_LEVEL);
                     if (mSettingsManager.getInitialCameraId() == CaptureModule.FRONT_ID) {
                         videoAddList.remove(SettingsManager.KEY_EIS_VALUE);
                     }
@@ -759,6 +753,9 @@ public class SettingsActivity extends PreferenceActivity {
                 removePreferenceGroup("video", parentPre);
                 removePreference(SettingsManager.KEY_TOUCH_TRACK_FOCUS, photoPre);
                 if (mDeveloperMenuEnabled) {
+                    if (DEV_LEVEL_ALL) {
+                        proModeOnlyList.add(SettingsManager.KEY_SWITCH_CAMERA);
+                    }
                     addDeveloperOptions(developer, proModeOnlyList);
                 }
                 break;
