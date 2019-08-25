@@ -101,6 +101,7 @@ public class SettingsManager implements ListMenu.SettingsListener {
     public static final int TALOS_SOCID = 355;
     public static final int MOOREA_SOCID = 365;
     public static final int SAIPAN_SOCID = 400;
+    public static final int SM6250_SOCID = 407;
     public static final boolean DEBUG =
             (PersistUtil.getCamera2Debug() == PersistUtil.CAMERA2_DEBUG_DUMP_LOG) ||
             (PersistUtil.getCamera2Debug() == PersistUtil.CAMERA2_DEBUG_DUMP_ALL);
@@ -1279,22 +1280,26 @@ public class SettingsManager implements ListMenu.SettingsListener {
             String cameraIdString = "camera " + i +" facing:" +
                     (facing == CameraCharacteristics.LENS_FACING_FRONT ? "front" : "back");
             fullEntries[i] = "camera " + i +" facing:"+cameraIdString;
-            Byte cameraType = mCharacteristics.get(i).get(CaptureModule.logical_camera_type);
-            if (cameraType != null) {
-                switch (cameraType) {
-                    case CaptureModule.TYPE_DEFAULT:
-                        cameraIdString += " Default";
-                        break;
-                    case CaptureModule.TYPE_RTB:
-                        cameraIdString += " RTB";
-                        break;
-                    case CaptureModule.TYPE_SAT:
-                        cameraIdString += " SAT";
-                        break;
-                    case CaptureModule.TYPE_VR360:
-                        cameraIdString += " VR360";
-                        break;
+            try {
+                Byte cameraType = mCharacteristics.get(i).get(CaptureModule.logical_camera_type);
+                if (cameraType != null) {
+                    switch (cameraType) {
+                        case CaptureModule.TYPE_DEFAULT:
+                            cameraIdString += " Default";
+                            break;
+                        case CaptureModule.TYPE_RTB:
+                            cameraIdString += " RTB";
+                            break;
+                        case CaptureModule.TYPE_SAT:
+                            cameraIdString += " SAT";
+                            break;
+                        case CaptureModule.TYPE_VR360:
+                            cameraIdString += " VR360";
+                            break;
+                    }
                 }
+            } catch(IllegalArgumentException e) {
+                Log.e(TAG, "buildCameraId no vendorTag :" + CaptureModule.logical_camera_type);
             }
             fullEntries[i] = cameraIdString;
             fullEntryValues[i] = "" + i;
