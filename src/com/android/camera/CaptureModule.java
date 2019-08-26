@@ -1018,7 +1018,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                 }
                 if (result.get(t2t_tracker_result_roi) != null) {
                     resultROI = result.get(t2t_tracker_result_roi);
-                    mT2TFocusRenderer.updateTrackerRect(resultROI);
+                    mT2TFocusRenderer.updateTrackerRect(resultROI, trackerScore);
                 }
                 if(DEBUG) {
                     Log.v(TAG, "updateT2tTrackerView mT2TTrackState :" + mT2TTrackState +
@@ -2629,7 +2629,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
             mState[id] = STATE_WAITING_TOUCH_FOCUS;
             applyFlash(builder, id);//apply flash mode and AEmode for this temp builder
-            if (isHighSpeedRateCapture()) {
+            if (mCurrentSceneMode.mode == CameraMode.HFR && isHighSpeedRateCapture()) {
                 List<CaptureRequest> tafBuilderList = isSSMEnabled() ?
                         createSSMBatchRequest(builder) :
                         ((CameraConstrainedHighSpeedCaptureSession) mCaptureSession[id]).
@@ -3264,8 +3264,16 @@ public class CaptureModule implements CameraModule, PhotoController,
                                                 "raw");
                                         image.close();
                                     } else {
-                                        ExifInterface exif = Exif.getExif(bytes);
-                                        int orientation = Exif.getOrientation(exif);
+                                        int orientation = 0;
+                                        ExifInterface exif = null;
+                                        if (image.getFormat() != ImageFormat.HEIC) {
+                                            exif = Exif.getExif(bytes);
+                                            orientation = Exif.getOrientation(exif);
+                                        } else {
+                                            orientation = CameraUtil.getJpegRotation(getMainCameraId(),mOrientation);
+                                        }
+
+
 
                                         if (mIntentMode != CaptureModule.INTENT_MODE_NORMAL) {
                                             mJpegImageData = bytes;
@@ -4497,15 +4505,16 @@ public class CaptureModule implements CameraModule, PhotoController,
             return;
         }
         Log.d(TAG, "onSingleTapUp " + x + " " + y);
+        int[] newXY = {x, y};
+        if (mUI.isOverControlRegion(newXY)) return;
+        if (!mUI.isOverSurfaceView(newXY)) return;
+
         if (mT2TFocusRenderer != null && mT2TFocusRenderer.isVisible()) {
             mT2TFocusRenderer.onSingleTapUp(x, y);
             triggerTouchFocus(x, y, TouchTrackFocusRenderer.TRACKER_CMD_REG);
             return;
         }
 
-        int[] newXY = {x, y};
-        if (mUI.isOverControlRegion(newXY)) return;
-        if (!mUI.isOverSurfaceView(newXY)) return;
         mUI.setFocusPosition(x, y);
         x = newXY[0];
         y = newXY[1];
@@ -5050,7 +5059,8 @@ public class CaptureModule implements CameraModule, PhotoController,
                 int deviceSocId = mSettingsManager.getDeviceSocId();
                 if (deviceSocId == SettingsManager.TALOS_SOCID ||
                         deviceSocId == SettingsManager.MOOREA_SOCID ||
-                        deviceSocId == SettingsManager.SAIPAN_SOCID) {
+                        deviceSocId == SettingsManager.SAIPAN_SOCID ||
+                        deviceSocId == SettingsManager.SM6250_SOCID) {
                     List list = CameraUtil
                             .createHighSpeedRequestList(mVideoRecordRequestBuilder.build());
                     mCurrentSession.setRepeatingBurst(list,mCaptureCallback, mCameraHandler);
@@ -5977,23 +5987,16 @@ public class CaptureModule implements CameraModule, PhotoController,
             if (!info.isEncoder() || info.getName().contains("google")) continue;
             for (String type : info.getSupportedTypes()) {
                 if ((videoEncoder == MediaRecorder.VideoEncoder.MPEG_4_SP && type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_MPEG4))
-                        || (videoEncoder == MediaRecorder.VideoEncoder.H263 && type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_H263))
-                        || (videoEncoder == MediaRecorder.VideoEncoder.H264 && type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_AVC))
-                        || (videoEncoder == MediaRecorder.VideoEncoder.HEVC && type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_HEVC)))
+                        || (videoEncoder == MediaRecorder.VideoEncoder.H263 && type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_H263)))
                 {
                     CodecCapabilities codecCapabilities = info.getCapabilitiesForType(type);
                     VideoCapabilities videoCapabilities = codecCapabilities.getVideoCapabilities();
                     try {
                         if (videoCapabilities != null) {
                             Log.d(TAG, "updateBitrate type is " + type + " " + info.getName());
-                            long maxBitRate = videoCapabilities.getBitrateRange().getUpper().intValue();
-                            int maxWidth = videoCapabilities.getSupportedWidths().getUpper().intValue();
-                            int maxHeight = videoCapabilities.getSupportedHeights().getUpper().intValue();
-                            Log.d(TAG, "updateBitrate size is " + width + "x" + height);
-                            int adjustedBitRate = (int) (maxBitRate * width * height / (maxWidth * maxHeight));
-                            Log.d(TAG, "updateBitrate maxBitRate is " + maxBitRate + ", profileBitRate is " + bitRate
-                                    + ", adjustedBitRate is " + adjustedBitRate);
-                            mMediaRecorder.setVideoEncodingBitRate(Math.min(bitRate, adjustedBitRate));
+                            int maxBitRate = videoCapabilities.getBitrateRange().getUpper().intValue();
+                            Log.d(TAG, "maxBitRate is " + maxBitRate + ", profileBitRate is " + bitRate);
+                            mMediaRecorder.setVideoEncodingBitRate(Math.min(bitRate, maxBitRate));
                             return;
                         }
                     } catch (IllegalArgumentException e) {
