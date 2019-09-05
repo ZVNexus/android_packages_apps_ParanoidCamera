@@ -392,7 +392,6 @@ public class PhotoModule
     private boolean mAnimateCapture = true;
 
     private int mJpegFileSizeEstimation = 0;
-    private int mRemainingPhotos = -1;
     private static final int SELFIE_FLASH_DURATION = 680;
 
     private void createCaptureThread() {
@@ -442,7 +441,6 @@ public class PhotoModule
                     if (uri != null)
                         mActivity.notifyNewMedia(uri);
                     mActivity.updateStorageSpaceAndHint();
-                    updateRemainingPhotos();
                 }
             });
             mediaSaveNotifyThread = null;
@@ -1686,12 +1684,10 @@ public class PhotoModule
                             new CameraActivity.OnStorageUpdateDoneListener() {
                                 @Override
                                 public void onStorageUpdateDone(long storageSpace) {
-                                    mUI.updateRemainingPhotos(--mRemainingPhotos);
                                 }
                             });
                 } else {
                     mHandler.post(() -> {
-                        mUI.updateRemainingPhotos(--mRemainingPhotos);
                     });
                 }
                 long now = System.currentTimeMillis();
@@ -2755,22 +2751,10 @@ public class PhotoModule
             @Override
             public void run() {
                 mActivity.updateStorageSpaceAndHint();
-                updateRemainingPhotos();
                 mUI.hideUI();
                 mUI.showUI();
             }
         });
-    }
-
-    private void updateRemainingPhotos() {
-        if (mJpegFileSizeEstimation != 0) {
-            mRemainingPhotos = (int)
-                    ((mActivity.getStorageSpaceBytes() - Storage.LOW_STORAGE_THRESHOLD_BYTES)
-                            / mJpegFileSizeEstimation);
-        } else {
-            mRemainingPhotos = -1;
-        }
-        mUI.updateRemainingPhotos(mRemainingPhotos);
     }
 
     private void onResumeTasks() {
@@ -3430,14 +3414,12 @@ public class PhotoModule
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        mUI.hideRemainingPhotoCnt();
                     }
                 });
             } else {
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        mUI.showRemainingPhotoCnt();
                     }
                 });
                 mParameters.setJpegQuality(JpegEncodingQualityMappings.getQualityNumber(jpegQuality));
@@ -3447,7 +3429,6 @@ public class PhotoModule
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            updateRemainingPhotos();
                         }
                     });
                 }
@@ -4966,7 +4947,6 @@ public class PhotoModule
             Storage.setSaveSDCard(
                     mPreferences.getString(CameraSettings.KEY_CAMERA_SAVEPATH, "0").equals("1"));
             mActivity.updateStorageSpaceAndHint();
-            updateRemainingPhotos();
         }
 
         if (CameraSettings.KEY_QC_CHROMA_FLASH.equals(pref.getKey())) {

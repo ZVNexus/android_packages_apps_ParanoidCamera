@@ -124,12 +124,6 @@
                         android:background="@drawable/circular_bg"
                         android:src="@drawable/ic_btn_shutter_retake"
                         android:layout_gravity="center" />
-
-                    <com.android.camera.ui.RemainingPhotos
-                        android:id="@+id/remaining_photos"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:visibility="gone" />
                 </FrameLayout>
 
                 <FrameLayout
