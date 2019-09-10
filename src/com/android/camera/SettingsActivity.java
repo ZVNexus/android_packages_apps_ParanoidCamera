@@ -27,6 +27,27 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+Not a contribution.
+*/
+
+/*
+ * Copyright (C) 2012 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 package com.android.camera;
 
 import android.app.ActionBar;
@@ -36,7 +57,6 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
-import android.media.audiofx.PresetReverb;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.MultiSelectListPreference;
@@ -44,7 +64,6 @@ import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceActivity;
-import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
 import android.view.Window;
@@ -82,6 +101,7 @@ public class SettingsActivity extends PreferenceActivity {
     private boolean mDeveloperMenuEnabled;
     private int privateCounter = 0;
     private final int DEVELOPER_MENU_TOUCH_COUNT = 10;
+    private final String[] NOT_HIGH_SPEES_SESSION = {"off","hfr60","hsr60"};
 
     private SharedPreferences.OnSharedPreferenceChangeListener mSharedPreferenceChangeListener
             = new SharedPreferences.OnSharedPreferenceChangeListener() {
@@ -153,12 +173,35 @@ public class SettingsActivity extends PreferenceActivity {
                     updatePreference(SettingsManager.KEY_VIDEO_QUALITY);
                 }
 
+                if ( pref.getKey().equals(SettingsManager.KEY_VIDEO_HIGH_FRAME_RATE)){
+                    updateFaceDetectionPreference();
+                }
+
                 if ( (pref.getKey().equals(SettingsManager.KEY_MANUAL_WB)) ) {
                     updateManualWBSettings();
+                }
+
+                if ((pref.getKey().equals(SettingsManager.KEY_ZSL) ||
+                        pref.getKey().equals(SettingsManager.KEY_PICTURE_FORMAT))) {
+                    updateFormatPreference();
                 }
             }
         }
     };
+
+    private void updateFormatPreference() {
+        ListPreference formatPref = (ListPreference)findPreference(SettingsManager.KEY_PICTURE_FORMAT);
+        ListPreference ZSLPref = (ListPreference) findPreference(SettingsManager.KEY_ZSL);
+        if (formatPref == null || ZSLPref ==null) {
+            return;
+        }
+        if("app-zsl".equals(ZSLPref.getValue())){
+            formatPref.setValue("0");
+            formatPref.setEnabled(false);
+        } else {
+            formatPref.setEnabled(true);
+        }
+    }
 
     private void UpdateManualExposureSettings() {
         //dismiss all popups first, because we need to show edit dialog
@@ -663,6 +706,7 @@ public class SettingsActivity extends PreferenceActivity {
                 add(SettingsManager.KEY_ANTI_BANDING_LEVEL);
                 add(SettingsManager.KEY_STATS_VISUALIZER_VALUE);
                 add(SettingsManager.KEY_SAVERAW);
+                add(SettingsManager.KEY_HDR);
                 add(SettingsManager.KEY_AUTO_HDR);
                 add(SettingsManager.KEY_MANUAL_EXPOSURE);
                 add(SettingsManager.KEY_SHARPNESS_CONTROL_MODE);
@@ -816,6 +860,8 @@ public class SettingsActivity extends PreferenceActivity {
         updateMultiPreference(SettingsManager.KEY_STATS_VISUALIZER_VALUE);
         updatePictureSizePreferenceButton();
         updateVideoHDRPreference();
+        updateFaceDetectionPreference();
+        updateFormatPreference();
 
         Map<String, SettingsManager.Values> map = mSettingsManager.getValuesMap();
         if (map == null) return;
@@ -876,6 +922,28 @@ public class SettingsActivity extends PreferenceActivity {
             return;
         }
         pref.setEnabled(mSettingsManager.isZZHDRSupported());
+    }
+
+    private void updateFaceDetectionPreference() {
+        ListPreference prf_hfr = (ListPreference)findPreference(
+                SettingsManager.KEY_VIDEO_HIGH_FRAME_RATE);
+        SwitchPreference prf_fd = (SwitchPreference)findPreference(
+                SettingsManager.KEY_FACE_DETECTION);
+        if (prf_hfr == null)
+            return;
+        boolean highSpeedSession = true;
+        for (String value:NOT_HIGH_SPEES_SESSION)
+            if (value.equals(prf_hfr.getValue()))
+                highSpeedSession = false;
+
+        if (prf_fd != null) {
+            if (highSpeedSession){
+                prf_fd.setChecked(false);
+                prf_fd.setEnabled(false);
+            } else {
+                prf_fd.setEnabled(true);
+            }
+        }
     }
 
     private void updatePreferenceButton(String key) {
