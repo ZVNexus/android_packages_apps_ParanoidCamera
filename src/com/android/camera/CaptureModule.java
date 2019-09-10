@@ -2977,6 +2977,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                     } else {
                         enableShutterAndVideoOnUiThread(id);
                     }
+                    Log.d(TAG,"onShutterButtonRelease");
                     if (mSettingsManager.isHeifWriterEncoding()) {
                         if (mHeifImage != null) {
                             try {
@@ -3294,7 +3295,9 @@ public class CaptureModule implements CameraModule, PhotoController,
                                             if (mLongshotActive) {
                                                 mLastJpegData = bytes;
                                             } else {
-                                                mActivity.updateThumbnail(bytes);
+                                                if (imageFormat != ImageFormat.HEIC){
+                                                    mActivity.updateThumbnail(bytes);
+                                                }
                                             }
                                         }
                                         image.close();
@@ -4022,6 +4025,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         updateTimeLapseSetting();
         estimateJpegFileSize();
         updateMaxVideoDuration();
+        mSettingsManager.filterPictureFormatByIntent(mIntentMode);
     }
 
     private void updatePreviewSize() {
@@ -5269,7 +5273,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                     mUI.resetPauseButton();
                     mRecordingTotalTime = 0L;
                     mRecordingStartTime = SystemClock.uptimeMillis();
-                    if (mHighSpeedCapture) {
+                    if (isHighSpeedRateCapture()) {
                         mUI.enableShutter(false);
                     }
                     mUI.showRecordingUI(true, false);
@@ -6052,7 +6056,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                 .getAudioEncoder(mSettingsManager.getValue(SettingsManager.KEY_AUDIO_ENCODER));
 
         mProfile.videoCodec = videoEncoder;
-        if (!mCaptureTimeLapse && !hfr && !mSuperSlomoCapture && !mHighSpeedCapture) {
+        if (!mCaptureTimeLapse && !hfr && !mSuperSlomoCapture) {
             mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mProfile.audioCodec = audioEncoder;
             if (mProfile.audioCodec == MediaRecorder.AudioEncoder.AMR_NB) {
@@ -6084,7 +6088,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             mMediaRecorder.setVideoSize(mProfile.videoFrameWidth, mProfile.videoFrameHeight);
         }
         mMediaRecorder.setVideoEncoder(videoEncoder);
-        if (!mCaptureTimeLapse && !hfr && !mSuperSlomoCapture && !mHighSpeedCapture) {
+        if (!mCaptureTimeLapse && !hfr && !mSuperSlomoCapture) {
             mMediaRecorder.setAudioEncodingBitRate(mProfile.audioBitRate);
             mMediaRecorder.setAudioChannels(mProfile.audioChannels);
             mMediaRecorder.setAudioSamplingRate(mProfile.audioSampleRate);
@@ -6234,9 +6238,11 @@ public class CaptureModule implements CameraModule, PhotoController,
             return;
         }
 
+        Log.d(TAG,"onShutterButtonClick");
+
         if (mCurrentSceneMode.mode == CameraMode.HFR ||
                 mCurrentSceneMode.mode == CameraMode.VIDEO) {
-            if (!mHighSpeedCapture) {
+            if (!isHighSpeedRateCapture()) {
                 if (mUI.isShutterEnabled()) {
                     captureVideoSnapshot(getMainCameraId());
                 }
@@ -8322,7 +8328,8 @@ public class CaptureModule implements CameraModule, PhotoController,
             int cameraId = isBackCamera() ? rearCameraId : frontCameraId;
             cameraId = isForceAUXOn(this.mode) ? auxCameraId : cameraId;
             if ((this.mode == CameraMode.DEFAULT || this.mode == CameraMode.VIDEO ||
-                    this.mode == CameraMode.PRO_MODE) && mSettingsManager.isDeveloperEnabled()) {
+                      this.mode == CameraMode.HFR || this.mode == CameraMode.PRO_MODE)
+                    && mSettingsManager.isDeveloperEnabled()) {
                 String value = mSettingsManager.getValue(SettingsManager.KEY_SWITCH_CAMERA);
                 if (value != null && !value.equals("-1")) {
                     cameraId = Integer.valueOf(value);

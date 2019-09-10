@@ -1116,7 +1116,7 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
             mVideoButton.setImageResource(R.drawable.video_stop);
             mRecordingTimeView.setText("00:00");
             mRecordingTimeRect.setVisibility(View.VISIBLE);
-            mMuteButton.setVisibility(mModule.isHSRMode() ? View.INVISIBLE : View.VISIBLE);
+            mMuteButton.setVisibility(mModule.isHSRMode() ? View.VISIBLE : View.INVISIBLE);
             setMuteButtonResource(!mModule.isAudioMute());
         } else {
             mFlashButton.setVisibility(View.VISIBLE);
@@ -1333,6 +1333,7 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
             case RTB:
             case SAT:
                 mFilterModeSwitcher.setVisibility(View.VISIBLE);
+                mSceneModeSwitcher.setVisibility(View.VISIBLE);
                 mVideoButton.setVisibility(View.INVISIBLE);
                 mFlashButton.setVisibility(View.INVISIBLE);
                 mMuteButton.setVisibility(View.INVISIBLE);
