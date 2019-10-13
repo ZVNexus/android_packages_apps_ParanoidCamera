@@ -1831,6 +1831,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                             } catch (IllegalArgumentException e) {
                                 e.printStackTrace();
                             }
+                            mCurrentSessionClosed = false;
                         }
 
                         @Override
@@ -2050,7 +2051,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                                                 + e.getMessage());
                                         e.printStackTrace();
                                     }
-
                                 }
 
                                 @Override
@@ -2090,10 +2090,11 @@ public class CaptureModule implements CameraModule, PhotoController,
                     }
                 }
             }
-        } catch (CameraAccessException | IOException | IllegalArgumentException e) {
+        } catch (CameraAccessException | IOException | IllegalArgumentException | NullPointerException | IllegalStateException e) {
             e.printStackTrace();
             quitVideoToPhotoWithError(e.getMessage());
         }
+        mCurrentSessionClosed = false;
     }
 
     private int getSensorTableHFRRange() {
@@ -4206,7 +4207,9 @@ public class CaptureModule implements CameraModule, PhotoController,
         msg.what = OPEN_CAMERA;
         msg.arg1 = mCurrentSceneMode.getCurrentId();
         Log.d(TAG,"open is "+msg.arg1);
-        mCameraHandler.sendMessage(msg);
+        if (mCameraHandler != null) {
+            mCameraHandler.sendMessage(msg);
+        }
         if (mDeepPortraitMode) {
             mUI.startDeepPortraitMode(mPreviewSize);
             if (mUI.getGLCameraPreview() != null) {
@@ -5939,7 +5942,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     private void closePreviewSession() {
-        Log.d(TAG, "closePreviewSession");
+        Log.d(TAG, "closePreviewSession: currentsession:" +mCurrentSession + ",currentclosed:" + mCurrentSessionClosed );
         if (mCurrentSession == null || mCurrentSessionClosed) {
             return;
         }
@@ -5961,7 +5964,8 @@ public class CaptureModule implements CameraModule, PhotoController,
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-        mCurrentSession.close();
+        //if have this, video switch to photo, photo will have no preview
+        //mCurrentSession.close();
         mCurrentSessionClosed = true;
         mCurrentSession = null;
     }
