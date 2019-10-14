@@ -4667,8 +4667,9 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     private boolean isTouchToFocusAllowed() {
-        if (isTakingPicture() || (mIsRecordingVideo && !isSSMEnabled())
-                || isTouchAfEnabledSceneMode()) return false;
+        if ((isTakingPicture() || (mIsRecordingVideo && !isSSMEnabled())
+                || isTouchAfEnabledSceneMode())
+                && !(mT2TFocusRenderer != null && mT2TFocusRenderer.isShown())) return false;
         return true;
     }
 
