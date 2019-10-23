@@ -5955,6 +5955,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         releaseMediaRecorder();
         releaseAudioFocus();
         mIsPreviewingVideo = false;
+        mUI.showRecordingUI(false, false);
     }
 
     private void stopRecordingVideo(int cameraId) {
