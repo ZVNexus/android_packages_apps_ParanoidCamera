@@ -837,21 +837,24 @@ public class SettingsManager implements ListMenu.SettingsListener {
     }
 
     public boolean setValue(String key, Set<String> set) {
-        ListPreference pref = mPreferenceGroup.findPreference(key);
-        if (pref != null) {
-            pref.setFromMultiValues(set);
-            updateMapAndNotify(pref);
-            return true;
-        } else {
-            return false;
+        if ( mPreferenceGroup != null ) {
+            ListPreference pref = mPreferenceGroup.findPreference(key);
+            if (pref != null) {
+                pref.setFromMultiValues(set);
+                updateMapAndNotify(pref);
+                return true;
+            }
         }
+        return false;
     }
 
     public void setValueIndex(String key, int index) {
-        ListPreference pref = mPreferenceGroup.findPreference(key);
-        if (pref != null) {
-            pref.setValueIndex(index);
-            updateMapAndNotify(pref);
+        if ( mPreferenceGroup != null ) {
+            ListPreference pref = mPreferenceGroup.findPreference(key);
+            if (pref != null) {
+                pref.setValueIndex(index);
+                updateMapAndNotify(pref);
+            }
         }
     }
 
