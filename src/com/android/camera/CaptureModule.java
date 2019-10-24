@@ -1974,6 +1974,15 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
     }
 
+    private void enableVideoButton(boolean enable) {
+        mActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mUI.enableVideo(enable);
+            }
+        });
+    }
+
     private void createSessionForVideo(final int cameraId) {
         mNeedSetupMediaRecorder = false;
         try {
@@ -2986,12 +2995,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             burstList.add(captureBuilder.build());
         }
         mCaptureSession[id].captureBurst(burstList, mLongshotCallBack, mCaptureCallbackHandler);
-        mActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mUI.enableVideo(false);
-            }
-        });
     }
 
     private void captureStillPictureForCommon(CaptureRequest.Builder captureBuilder, int id) throws CameraAccessException{
@@ -4970,7 +4973,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             Log.d(TAG, "Longshot button up");
             mLongshotActive = false;
             mPostProcessor.stopLongShot();
-            mUI.enableVideo(!mLongshotActive);
         }
     }
 
@@ -6157,6 +6159,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void setUpMediaRecorder(int cameraId) throws IOException {
         Log.d(TAG, "setUpMediaRecorder");
+        enableVideoButton(false);
         String videoSize = mSettingsManager.getValue(SettingsManager.KEY_VIDEO_QUALITY);
         int size = CameraSettings.VIDEO_QUALITY_TABLE.get(videoSize);
         Intent intent = mActivity.getIntent();
@@ -6318,6 +6321,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             mMediaRecorder.setOrientationHint(rotation);
         }
         prepareMediaRecorder();
+        enableVideoButton(true);
         mMediaRecorder.setOnErrorListener(this);
         mMediaRecorder.setOnInfoListener(this);
     }
@@ -6463,13 +6467,11 @@ public class CaptureModule implements CameraModule, PhotoController,
 
             if (isLongshotNeedCancel()) {
                 mLongshotActive = false;
-                mUI.enableVideo(!mLongshotActive);
                 return;
             }
 
             Log.d(TAG, "Start Longshot");
             mLongshotActive = true;
-            mUI.enableVideo(!mLongshotActive);
             takePicture();
         } else {
             RotateTextToast.makeText(mActivity, "Long shot not support", Toast.LENGTH_SHORT).show();
