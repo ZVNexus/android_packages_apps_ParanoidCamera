@@ -1363,6 +1363,9 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         if (value == null) {
             mFrontBackSwitcher.setVisibility(View.INVISIBLE);
         }
+        if(mModule.mMFNREnable && mModule.getMainCameraId() ==  android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT){
+            mFilterModeSwitcher.setVisibility(View.INVISIBLE);
+        }
     }
 
     public void addFilterMode() {
@@ -2374,7 +2377,7 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         if (switchCamera) {
             mModule.selectCameraMode(photoModeIndex);
         } else {
-            mModule.setCurrentSceneModeOnly(photoModeIndex);
+            mModule.setNextSceneMode(photoModeIndex);
         }
     }
 
