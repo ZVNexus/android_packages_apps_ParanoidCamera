@@ -2111,9 +2111,11 @@ public class CaptureModule implements CameraModule, PhotoController,
                     }
                 }
             }
-        } catch (CameraAccessException | IOException | IllegalArgumentException | NullPointerException | IllegalStateException e) {
+        } catch (CameraAccessException | IOException | IllegalArgumentException  e) {
             e.printStackTrace();
             quitVideoToPhotoWithError(e.getMessage());
+        }catch(IllegalStateException | NullPointerException e){
+            e.printStackTrace();
         }
         mCurrentSessionClosed = false;
     }
