@@ -1069,6 +1069,7 @@ public class SettingsActivity extends PreferenceActivity {
         updatePreference(SettingsManager.KEY_VIDEO_DURATION);
         updatePreference(SettingsManager.KEY_SWITCH_CAMERA);
         updatePreference(SettingsManager.KEY_TONE_MAPPING);
+        updatePreference(SettingsManager.KEY_LIVE_PREVIEW);
         updateMultiPreference(SettingsManager.KEY_STATS_VISUALIZER_VALUE);
         updatePictureSizePreferenceButton();
         updateVideoHDRPreference();

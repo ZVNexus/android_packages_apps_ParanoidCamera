@@ -488,6 +488,8 @@ public class CaptureModule implements CameraModule, PhotoController,
             new CaptureResult.Key<>("org.quic.camera2.objectTrackingResults.ResultROI", int[].class);
     private static final CaptureResult.Key<Integer> t2t_tracker_score =
             new CaptureResult.Key<>("org.quic.camera2.objectTrackingResults.TrackerScore", Integer.class);
+    private static final CaptureRequest.Key<Integer> livePreview =
+            new CaptureRequest.Key<>("com.qti.chi.livePreview.enable", Integer.class);
 
     private TouchTrackFocusRenderer mT2TFocusRenderer;
     private boolean mIsDepthFocus = false;
@@ -3920,6 +3922,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         applyBEStats(builder);
         applyWbColorTemperature(builder);
         applyToneMapping(builder);
+        applyLivePreview(builder);
     }
 
     /**
@@ -5682,6 +5685,19 @@ public class CaptureModule implements CameraModule, PhotoController,
                 builder.set(custom_noise_reduction, (byte) 0x01);
             } catch (IllegalArgumentException e) {
                 Log.w(TAG, "capture can`t find vendor tag: " + custom_noise_reduction.toString());
+            }
+        }
+    }
+
+    private void applyLivePreview(CaptureRequest.Builder builder) {
+        String value = mSettingsManager.getValue(SettingsManager.KEY_LIVE_PREVIEW);
+        Log.v(TAG, "applyLivePreview livePreviewValue :" + value );
+        if (value != null) {
+            int intValue = Integer.parseInt(value);
+            try {
+                builder.set(CaptureModule.livePreview, intValue);
+            } catch (IllegalArgumentException e) {
+                Log.w(TAG, "cannot find vendor tag: " + livePreview.toString());
             }
         }
     }
