@@ -752,11 +752,14 @@ public class SettingsManager implements ListMenu.SettingsListener {
             if (file.isDirectory()) {
                 Log.d(TAG, filePath + " is directory");
             } else {
+                InputStream is = null;
+                InputStreamReader isr = null;
+                BufferedReader br = null;
                 try {
-                    InputStream is = new FileInputStream(file);
+                    is = new FileInputStream(file);
                     if (is != null) {
-                        InputStreamReader isr = new InputStreamReader(is);
-                        BufferedReader br = new BufferedReader(isr);
+                        isr = new InputStreamReader(is);
+                        br = new BufferedReader(isr);
 
                         String line;
                         while ((line = br.readLine()) != null) {
@@ -767,6 +770,17 @@ public class SettingsManager implements ListMenu.SettingsListener {
                     Log.d(TAG, filePath + " doesn't found!");
                 } catch (IOException e) {
                     Log.d(TAG, filePath + " read exception, " + e.getMessage());
+                } finally {
+                    try{
+                        if (isr != null)
+                            isr.close();
+                        if (br != null)
+                            br.close();
+                        if (is != null)
+                            is.close();
+                    }catch (IOException e){
+
+                    }
                 }
             }
         }
