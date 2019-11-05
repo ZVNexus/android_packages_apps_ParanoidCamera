@@ -205,6 +205,9 @@ public class CameraUtil {
     private static final String EXTRAS_CAMERA_FACING =
             "android.intent.extras.CAMERA_FACING";
 
+    private static final String EXTRAS_CAMERA_ID =
+            "android.intent.extras.CAMERA_ID";
+
     private static float sPixelDensity = 1;
     private static ImageFileNamer sImageFileNamer;
 
@@ -845,6 +848,11 @@ public class CameraUtil {
             return FACING_BACK;
         }
         return -1;
+    }
+
+    public static int getCameraIdOfIntentExtras(Activity currentActivity){
+        return currentActivity.getIntent().getIntExtra(
+                CameraUtil.EXTRAS_CAMERA_ID, -1);
     }
 
     private static boolean isFrontCameraIntent(int intentCameraId) {

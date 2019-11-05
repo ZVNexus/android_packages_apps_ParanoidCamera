@@ -4087,6 +4087,15 @@ public class CaptureModule implements CameraModule, PhotoController,
     public void onResumeBeforeSuper() {
         // must change cameraId before "mPaused = false;"
         int facingOfIntentExtras = CameraUtil.getFacingOfIntentExtras(mActivity);
+        int intentCameraId = CameraUtil.getCameraIdOfIntentExtras(mActivity);
+        if (intentCameraId != -1){
+            String cameraId = String.valueOf(intentCameraId);
+            for (String id : mCameraId){
+                if (cameraId.equals(id)){
+                    mCurrentSceneMode.setSwithCameraId(intentCameraId);
+                }
+            }
+        }
         if (facingOfIntentExtras != -1) {
             mSettingsManager.setValue(SettingsManager.KEY_FRONT_REAR_SWITCHER_VALUE,
                     facingOfIntentExtras == CameraUtil.FACING_BACK ? "rear" : "front");
@@ -8601,18 +8610,26 @@ public class CaptureModule implements CameraModule, PhotoController,
         public int rearCameraId;
         public int frontCameraId;
         public int auxCameraId = 0;
-        int getCurrentId() {
+        public int swithCameraId = -1;
+        public int getCurrentId() {
             int cameraId = isBackCamera() ? rearCameraId : frontCameraId;
             cameraId = isForceAUXOn(this.mode) ? auxCameraId : cameraId;
             if ((this.mode == CameraMode.DEFAULT || this.mode == CameraMode.VIDEO ||
                       this.mode == CameraMode.HFR || this.mode == CameraMode.PRO_MODE)
-                    && mSettingsManager.isDeveloperEnabled()) {
+                    && (mSettingsManager.isDeveloperEnabled() || swithCameraId != -1)) {
                 String value = mSettingsManager.getValue(SettingsManager.KEY_SWITCH_CAMERA);
                 if (value != null && !value.equals("-1")) {
                     cameraId = Integer.valueOf(value);
                 }
+                if (swithCameraId != -1){
+                    cameraId = swithCameraId;
+                }
             }
             return cameraId;
+        }
+
+        public void setSwithCameraId(int swithCameraId) {
+            this.swithCameraId = swithCameraId;
         }
     }
 
