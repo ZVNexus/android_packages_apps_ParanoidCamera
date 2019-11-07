@@ -4049,7 +4049,6 @@ public class CaptureModule implements CameraModule, PhotoController,
         mLongshotActive = false;
         updateZoom();
         updatePreviewSurfaceReadyState(false);
-        updateMFNRText();
     }
 
     private void cancelTouchFocus() {
@@ -4337,6 +4336,8 @@ public class CaptureModule implements CameraModule, PhotoController,
                 mActivity.onModuleSelected(ModuleSwitcher.PANOCAPTURE_MODULE_INDEX);
             }
         }
+
+        updateMFNRText();
     }
 
     private void checkRTBCameraId() {
