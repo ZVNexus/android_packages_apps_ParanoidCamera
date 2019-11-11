@@ -231,10 +231,10 @@ public class SettingsActivity extends PreferenceActivity {
         ListPreference ZSLPref = (ListPreference) findPreference(SettingsManager.KEY_ZSL);
         ListPreference mfnrPref = (ListPreference) findPreference(SettingsManager.KEY_CAPTURE_MFNR_VALUE);
         SwitchPreference selfiePref = (SwitchPreference) findPreference(SettingsManager.KEY_SELFIEMIRROR);
-        if (formatPref == null || ZSLPref ==null) {
+        if (formatPref == null) {
             return;
         }
-        if("app-zsl".equals(ZSLPref.getValue()) ||
+        if((ZSLPref != null && "app-zsl".equals(ZSLPref.getValue())) ||
                 (selfiePref != null && selfiePref.isChecked())){
             formatPref.setValue("0");
             formatPref.setEnabled(false);
