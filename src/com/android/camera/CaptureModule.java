@@ -8577,6 +8577,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     public void setCameraModeSwitcherAllowed(boolean allow) {
         mCameraModeSwitcherAllowed = allow;
+        mUI.updateCameraSwitchEnable(allow);
     }
 
     public boolean getCameraModeSwitcherAllowed() {
