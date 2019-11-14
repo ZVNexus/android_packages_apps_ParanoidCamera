@@ -6845,12 +6845,13 @@ public class CaptureModule implements CameraModule, PhotoController,
             currentFourthToneValue = pref.getFloat(SettingsManager.KEY_TONE_MAPPING_FOURTH_TONE, -1.0f);
             VendorTagUtil.setToneMappingFourthToneValue(request, currentFourthToneValue);
         }else if (mode.equals(userSetting)){
+            VendorTagUtil.setToneMappingVaild(request, true);
             currentDarkBoostValue = pref.getFloat(SettingsManager.KEY_TONE_MAPPING_DARK_BOOST, -1.0f);
             VendorTagUtil.setToneMappingDarkBoostValue(request, currentDarkBoostValue);
             currentFourthToneValue = pref.getFloat(SettingsManager.KEY_TONE_MAPPING_FOURTH_TONE, -1.0f);
             VendorTagUtil.setToneMappingFourthToneValue(request, currentFourthToneValue);
         } else {
-            VendorTagUtil.setToneMappingDisableMode(request);
+            VendorTagUtil.setToneMappingVaild(request, false);
         }
         Log.i(TAG,"applyToneMapping, mode:" + mode + ",currentDarkBoostValue:" + currentDarkBoostValue + ",currentFourthToneValue:" + currentFourthToneValue);
     }

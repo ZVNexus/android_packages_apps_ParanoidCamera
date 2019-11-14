@@ -687,9 +687,13 @@ public class SettingsActivity extends PreferenceActivity {
                 String fourthToneStr = fourthToneInput.getText().toString();
                 if (darkBoostStr.length() > 0) {
                     darkBoost = Float.parseFloat(darkBoostStr);
+                } else {
+                    editor.putFloat(SettingsManager.KEY_TONE_MAPPING_DARK_BOOST, -1.0f);
                 }
                 if (fourthToneStr.length() > 0) {
                     fourthTone = Float.parseFloat(fourthToneStr);
+                } else {
+                    editor.putFloat(SettingsManager.KEY_TONE_MAPPING_FOURTH_TONE, -1.0f);
                 }
 
                 if (darkBoost <= toneMappingRange[1] && darkBoost >= toneMappingRange[0]) {
