@@ -4443,6 +4443,9 @@ public class CaptureModule implements CameraModule, PhotoController,
         if(!mIsCloseCamera){
             createSessions();
         }
+        if (isSSMEnabled()) {
+            updateProgressBar(false);
+        }
     }
 
     private void checkRTBCameraId() {
@@ -6088,6 +6091,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             updateProgressBar(false);
             if (!mSSMCaptureCompleteFlag) {
                 warningToast("Super Slow Motion is not finished");
+                if (mVideoFilename != null) deleteVideoFile(mVideoFilename);
             }
         }
         mStopRecPending = true;
