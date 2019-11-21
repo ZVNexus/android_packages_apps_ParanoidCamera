@@ -987,5 +987,15 @@
         <item>@string/pref_camera2_live_preview_entry_value_disable</item>
         <item>@string/pref_camera2_live_preview_entry_value_enable</item>
     </string-array>
+
+    <string-array name="pref_camera2_gridline_entries" translatable="false">
+        <item>@string/setting_off</item>
+        <item>@string/setting_on</item>
+    </string-array>
+
+    <string-array name="pref_camera2_gridline_entryvalues" translatable="false">
+        <item>@string/setting_off_value</item>
+        <item>@string/setting_on_value</item>
+    </string-array>
 </resources>
 
