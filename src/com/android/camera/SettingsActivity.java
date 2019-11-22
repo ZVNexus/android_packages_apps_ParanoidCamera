@@ -687,9 +687,13 @@ public class SettingsActivity extends PreferenceActivity {
                 String fourthToneStr = fourthToneInput.getText().toString();
                 if (darkBoostStr.length() > 0) {
                     darkBoost = Float.parseFloat(darkBoostStr);
+                } else {
+                    editor.putFloat(SettingsManager.KEY_TONE_MAPPING_DARK_BOOST, -1.0f);
                 }
                 if (fourthToneStr.length() > 0) {
                     fourthTone = Float.parseFloat(fourthToneStr);
+                } else {
+                    editor.putFloat(SettingsManager.KEY_TONE_MAPPING_FOURTH_TONE, -1.0f);
                 }
 
                 if (darkBoost <= toneMappingRange[1] && darkBoost >= toneMappingRange[0]) {
@@ -933,7 +937,13 @@ public class SettingsActivity extends PreferenceActivity {
         CaptureModule.CameraMode mode =
                 (CaptureModule.CameraMode) getIntent().getSerializableExtra(CAMERA_MODULE);
 
-        if (mSettingsManager.getInitialCameraId() == CaptureModule.FRONT_ID) {
+        final SharedPreferences pref = getSharedPreferences(
+                ComboPreferences.getGlobalSharedPreferencesName(this),Context.MODE_PRIVATE);
+        int isSupportT2T = pref.getInt(
+                SettingsManager.KEY_SUPPORT_T2T_FOCUS, -1);
+
+        if (mSettingsManager.getInitialCameraId() == CaptureModule.FRONT_ID ||
+                (isSupportT2T == SettingsManager.TOUCH_TRACK_FOCUS_DISABLE)) {
             removePreference(SettingsManager.KEY_TOUCH_TRACK_FOCUS, photoPre);
             removePreference(SettingsManager.KEY_TOUCH_TRACK_FOCUS, videoPre);
         }
