@@ -240,6 +240,9 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private boolean mIsRTBCameraId = false;
 
+    private SharedPreferences mGlobalSharedPref = null;
+    private boolean mSupportT2TFocus = true;
+
     /** For temporary save warmstart gains and cct value*/
     private float mRGain = -1.0f;
     private float mGGain = -1.0f;
@@ -1010,6 +1013,29 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
     }
 
+    private void updateSupportT2TFocus(CaptureResult result) {
+        if (mGlobalSharedPref == null) {
+            mGlobalSharedPref = mActivity.getSharedPreferences(
+                    ComboPreferences.getGlobalSharedPreferencesName(mActivity),
+                    Context.MODE_PRIVATE);
+
+        }
+        int isSupport = mGlobalSharedPref.getInt(SettingsManager.KEY_SUPPORT_T2T_FOCUS, -1);
+        if (isSupport == -1) {
+            try {
+                result.get(t2t_tracker_status);
+            } catch (IllegalArgumentException e) {
+                mSupportT2TFocus = false;
+            }
+
+            SharedPreferences.Editor editor = mGlobalSharedPref.edit();
+            editor.putInt(SettingsManager.KEY_SUPPORT_T2T_FOCUS,
+                    (mSupportT2TFocus ? SettingsManager.TOUCH_TRACK_FOCUS_ENABLE :
+                            SettingsManager.TOUCH_TRACK_FOCUS_DISABLE));
+            editor.apply();
+        }
+    }
+
     private void updateT2tTrackerView(CaptureResult result) {
         int[] resultROI = null;
         int trackerScore = -1;
@@ -1017,6 +1043,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             mT2TFocusRenderer = getT2TFocusRenderer();
             updateT2TTracking();
         }
+        updateSupportT2TFocus(result);
         if (mT2TFocusRenderer.isShown()) {
             updateT2TTracking();
             try{
@@ -1997,6 +2024,14 @@ public class CaptureModule implements CameraModule, PhotoController,
                     mUI.resetTrackingFocus();
                 }
             });
+
+            try {
+                waitForPreviewSurfaceReady();
+            } catch (RuntimeException e) {
+                Log.v(TAG, "createSessionForVideo: normal status occur " +
+                        "Time out waiting for surface ");
+            }
+
             List<Surface> surfaces = new ArrayList<>();
             Surface surface = getPreviewSurfaceForSession(cameraId);
             mFrameProcessor.onOpen(getFrameProcFilterId(), mVideoSize);
@@ -2111,9 +2146,11 @@ public class CaptureModule implements CameraModule, PhotoController,
                     }
                 }
             }
-        } catch (CameraAccessException | IOException | IllegalArgumentException | NullPointerException | IllegalStateException e) {
+        } catch (CameraAccessException | IOException | IllegalArgumentException  e) {
             e.printStackTrace();
             quitVideoToPhotoWithError(e.getMessage());
+        }catch(IllegalStateException | NullPointerException e){
+            e.printStackTrace();
         }
         mCurrentSessionClosed = false;
     }
@@ -3815,6 +3852,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     private void applySettingsForUnlockFocus(CaptureRequest.Builder builder, int id) {
         builder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+        applyFlash(builder, id);
         applyCommonSettings(builder, id);
     }
 
@@ -4049,7 +4087,6 @@ public class CaptureModule implements CameraModule, PhotoController,
         mLongshotActive = false;
         updateZoom();
         updatePreviewSurfaceReadyState(false);
-        updateMFNRText();
     }
 
     private void cancelTouchFocus() {
@@ -4337,6 +4374,8 @@ public class CaptureModule implements CameraModule, PhotoController,
                 mActivity.onModuleSelected(ModuleSwitcher.PANOCAPTURE_MODULE_INDEX);
             }
         }
+
+        updateMFNRText();
     }
 
     private void checkRTBCameraId() {
@@ -5386,6 +5425,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             Log.w(TAG, "Storage issue, ignore the start request");
             mStartRecPending = false;
             mIsRecordingVideo = false;
+            Toast.makeText(mActivity,R.string.storage_not_enough,Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -6371,7 +6411,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             if (!startRecordingVideo(getMainCameraId())) {
                 // Show ui when start recording failed.
                 mUI.showUIafterRecording();
-                releaseMediaRecorder();
             }
         } else if (mMediaRecorderStarted) {
             stopRecordingVideo(getMainCameraId());
@@ -6808,12 +6847,13 @@ public class CaptureModule implements CameraModule, PhotoController,
             currentFourthToneValue = pref.getFloat(SettingsManager.KEY_TONE_MAPPING_FOURTH_TONE, -1.0f);
             VendorTagUtil.setToneMappingFourthToneValue(request, currentFourthToneValue);
         }else if (mode.equals(userSetting)){
+            VendorTagUtil.setToneMappingVaild(request, true);
             currentDarkBoostValue = pref.getFloat(SettingsManager.KEY_TONE_MAPPING_DARK_BOOST, -1.0f);
             VendorTagUtil.setToneMappingDarkBoostValue(request, currentDarkBoostValue);
             currentFourthToneValue = pref.getFloat(SettingsManager.KEY_TONE_MAPPING_FOURTH_TONE, -1.0f);
             VendorTagUtil.setToneMappingFourthToneValue(request, currentFourthToneValue);
         } else {
-            VendorTagUtil.setToneMappingDisableMode(request);
+            VendorTagUtil.setToneMappingVaild(request, false);
         }
         Log.i(TAG,"applyToneMapping, mode:" + mode + ",currentDarkBoostValue:" + currentDarkBoostValue + ",currentFourthToneValue:" + currentFourthToneValue);
     }

@@ -67,9 +67,13 @@ public class VendorTagUtil {
     private static CaptureRequest.Key<Byte> HDRVideoMode =
             new CaptureRequest.Key<>("org.quic.camera2.streamconfigs.HDRVideoMode", Byte.class);
     private static CaptureRequest.Key<Float> TONE_MAPPING_DARK_BOOST =
-            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.dark_boost_offset", Float.class);
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.darkBoostOffset", Float.class);
     private static CaptureRequest.Key<Float> TONE_MAPPING_FOURTH_TONE =
-            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.fourth_tone_anchor", Float.class);
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.fourthToneAnchor", Float.class);
+    private static CaptureRequest.Key<Byte> ISVAILDDARKBOOST =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.isValidDarkBoostOffset", Byte.class);
+    private static CaptureRequest.Key<Byte> ISVAILDFOURTHTONE =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.isValidFourthToneAnchor", Byte.class);
 
     private static final int MANUAL_WB_DISABLE_MODE = 0;
     private static final int MANUAL_WB_CCT_MODE = 1;
@@ -198,12 +202,14 @@ public class VendorTagUtil {
         }
     }
 
-    public static void setToneMappingDisableMode(CaptureRequest.Builder builder) {
-        float defaultValue = -1.0f;
-        setToneMappingDarkBoostValue(builder, defaultValue);
-        setToneMappingFourthToneValue(builder, defaultValue);
+    public static void setToneMappingVaild(CaptureRequest.Builder builder, boolean isVaild) {
+        if (isSupported(builder, ISVAILDDARKBOOST)) {
+            builder.set(ISVAILDDARKBOOST, (byte)(isVaild ? 0x01 : 0x00));
+        }
+        if (isSupported(builder, ISVAILDFOURTHTONE)) {
+            builder.set(ISVAILDFOURTHTONE, (byte)(isVaild ? 0x01 : 0x00));
+        }
     }
-
     public static void setToneMappingDarkBoostValue(CaptureRequest.Builder builder, float value) {
         if (isSupported(builder, TONE_MAPPING_DARK_BOOST)) {
             builder.set(TONE_MAPPING_DARK_BOOST, value);
