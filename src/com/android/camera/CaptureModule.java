@@ -2871,6 +2871,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                 if (mLongshotActive) {
                     captureStillPictureForLongshot(captureBuilder, id);
                 } else {
+                    mLongshoting = false;
                     captureStillPictureForCommon(captureBuilder, id);
                 }
             }
@@ -2956,7 +2957,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                         }
                     });
                 }
-                mLongshoting = false;
             }
 
             @Override
@@ -2990,7 +2990,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                         }
                     });
                 }
-                mLongshoting = false;
             }
 
             @Override
