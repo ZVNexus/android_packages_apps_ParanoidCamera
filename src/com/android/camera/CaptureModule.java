@@ -3699,6 +3699,17 @@ public class CaptureModule implements CameraModule, PhotoController,
                 mImageReader[i].close();
                 mImageReader[i] = null;
             }
+
+            if (null != mRawImageReader[i]){
+                mRawImageReader[i].close();
+                mRawImageReader = null;
+            }
+        }
+        for (int i = mYUVImageReader.length-1; i>=0 ;i--){
+            if (mYUVImageReader[i] != null){
+                mYUVImageReader[i].close();
+                mYUVImageReader[i] =null;
+            }
         }
     }
 
@@ -3753,6 +3764,18 @@ public class CaptureModule implements CameraModule, PhotoController,
                 if (null != mImageReader[i]) {
                     mImageReader[i].close();
                     mImageReader[i] = null;
+                }
+
+                if (null != mRawImageReader[i]){
+                    mRawImageReader[i].close();
+                    mRawImageReader = null;
+                }
+            }
+
+            for (int i = mYUVImageReader.length-1; i>=0 ;i--){
+                if (mYUVImageReader[i] != null){
+                    mYUVImageReader[i].close();
+                    mYUVImageReader[i] =null;
                 }
             }
 
@@ -8345,6 +8368,8 @@ public class CaptureModule implements CameraModule, PhotoController,
         cleanupEmptyFile();
         if (mMediaRecorder != null) {
             try{
+                if (mMediaRecorderSurface != null)
+                    mMediaRecorderSurface.release();
                 mMediaRecorder.reset();
                 mMediaRecorder.release();
             }catch (RuntimeException e) {
