@@ -135,7 +135,7 @@ public class PersistUtil {
     private static final String PERSIST_DISPLAY_LMAX =
             SystemProperties.get("persist.sys.camera.display.lmax", "");
     private static final int PERSIST_BURST_PREVIEW_REQUEST_NUMS =
-            SystemProperties.getInt("persist.sys.camera.burst.preview.nums", 0);
+            SystemProperties.getInt("persist.sys.camera.burst.preview.nums", 1);
     private static final boolean PERSIST_SSM_ENABLE =
             SystemProperties.getBoolean("persist.sys.camera.ssm.enable", false);
 

@@ -158,8 +158,8 @@ public class SettingsActivity extends PreferenceActivity {
                 SettingsManager.Values values = map.get(state.key);
                 boolean enabled = values.overriddenValue == null;
                 Preference pref = findPreference(state.key);
+                if (pref == null) continue;
                 Log.i(TAG, "onsettingschange:" + pref.getKey());
-                if (pref == null) return;
 
                 pref.setEnabled(enabled);
 
@@ -231,10 +231,10 @@ public class SettingsActivity extends PreferenceActivity {
         ListPreference ZSLPref = (ListPreference) findPreference(SettingsManager.KEY_ZSL);
         ListPreference mfnrPref = (ListPreference) findPreference(SettingsManager.KEY_CAPTURE_MFNR_VALUE);
         SwitchPreference selfiePref = (SwitchPreference) findPreference(SettingsManager.KEY_SELFIEMIRROR);
-        if (formatPref == null || ZSLPref ==null) {
+        if (formatPref == null) {
             return;
         }
-        if("app-zsl".equals(ZSLPref.getValue()) ||
+        if((ZSLPref != null && "app-zsl".equals(ZSLPref.getValue())) ||
                 (selfiePref != null && selfiePref.isChecked())){
             formatPref.setValue("0");
             formatPref.setEnabled(false);
@@ -1069,6 +1069,7 @@ public class SettingsActivity extends PreferenceActivity {
         updatePreference(SettingsManager.KEY_VIDEO_DURATION);
         updatePreference(SettingsManager.KEY_SWITCH_CAMERA);
         updatePreference(SettingsManager.KEY_TONE_MAPPING);
+        updatePreference(SettingsManager.KEY_LIVE_PREVIEW);
         updateMultiPreference(SettingsManager.KEY_STATS_VISUALIZER_VALUE);
         updatePictureSizePreferenceButton();
         updateVideoHDRPreference();
