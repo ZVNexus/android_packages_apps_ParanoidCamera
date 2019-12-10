@@ -154,6 +154,7 @@ public class SettingsManager implements ListMenu.SettingsListener {
     public static final String KEY_EXPOSURE = "pref_camera2_exposure_key";
     public static final String KEY_TIMER = "pref_camera2_timer_key";
     public static final String KEY_LONGSHOT = "pref_camera2_longshot_key";
+    public static final String KEY_GRIDLINE = "pref_camera2_gridline_key";
     public static final String KEY_SELFIEMIRROR = "pref_camera2_selfiemirror_key";
     public static final String KEY_VIDEO_DURATION = "pref_camera2_video_duration_key";
     public static final String KEY_VIDEO_QUALITY = "pref_camera2_video_quality_key";
@@ -230,6 +231,7 @@ public class SettingsManager implements ListMenu.SettingsListener {
     public static final String KEY_FACE_DETECTION_MODE = "pref_camera2_face_detection_mode";
     public static final String KEY_ZSL = "pref_camera2_zsl_key";
     public static final String KEY_VIDEO_ENCODER_PROFILE = "pref_camera2_videoencoderprofile_key";
+    public static final String KEY_LIVE_PREVIEW = "pref_camera2_live_preview_key";
     public static final String MAUNAL_ABSOLUTE_ISO_VALUE = "absolute";
 
     private static final String TAG = "SnapCam_SettingsManager";
@@ -751,11 +753,14 @@ public class SettingsManager implements ListMenu.SettingsListener {
             if (file.isDirectory()) {
                 Log.d(TAG, filePath + " is directory");
             } else {
+                InputStream is = null;
+                InputStreamReader isr = null;
+                BufferedReader br = null;
                 try {
-                    InputStream is = new FileInputStream(file);
+                    is = new FileInputStream(file);
                     if (is != null) {
-                        InputStreamReader isr = new InputStreamReader(is);
-                        BufferedReader br = new BufferedReader(isr);
+                        isr = new InputStreamReader(is);
+                        br = new BufferedReader(isr);
 
                         String line;
                         while ((line = br.readLine()) != null) {
@@ -766,6 +771,17 @@ public class SettingsManager implements ListMenu.SettingsListener {
                     Log.d(TAG, filePath + " doesn't found!");
                 } catch (IOException e) {
                     Log.d(TAG, filePath + " read exception, " + e.getMessage());
+                } finally {
+                    try{
+                        if (isr != null)
+                            isr.close();
+                        if (br != null)
+                            br.close();
+                        if (is != null)
+                            is.close();
+                    }catch (IOException e){
+
+                    }
                 }
             }
         }
