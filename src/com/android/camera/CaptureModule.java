@@ -931,16 +931,20 @@ public class CaptureModule implements CameraModule, PhotoController,
         public void onCaptureProgressed(CameraCaptureSession session,
                                         CaptureRequest request,
                                         CaptureResult partialResult) {
-            int id = (int) partialResult.getRequest().getTag();
-            if (id == getMainCameraId()) {
-                Face[] faces = partialResult.get(CaptureResult.STATISTICS_FACES);
-                if (BSGC_DEBUG)
-                    Log.d(BSGC_TAG,"onCaptureProgressed Detected Face size = " + Integer.toString(faces == null? 0 : faces.length));
-                if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
-                    updateFaceView(faces, getBsgcInfo(partialResult, faces.length));
-                } else {
-                    updateFaceView(faces, null);
+            try {
+                int id = (int) partialResult.getRequest().getTag();
+                if (id == getMainCameraId()) {
+                    Face[] faces = partialResult.get(CaptureResult.STATISTICS_FACES);
+                    if (BSGC_DEBUG)
+                        Log.d(BSGC_TAG, "onCaptureProgressed Detected Face size = " + Integer.toString(faces == null ? 0 : faces.length));
+                    if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
+                        updateFaceView(faces, getBsgcInfo(partialResult, faces.length));
+                    } else {
+                        updateFaceView(faces, null);
+                    }
                 }
+            }catch (ClassCastException e){
+                Log.i(TAG,"onCaptureProgressed, result tag is string not int");
             }
         }
 
@@ -948,33 +952,39 @@ public class CaptureModule implements CameraModule, PhotoController,
         public void onCaptureCompleted(CameraCaptureSession session,
                                        CaptureRequest request,
                                        TotalCaptureResult result) {
-            int id = (int) result.getRequest().getTag();
+            try {
+                {
+                    int id = (int) result.getRequest().getTag();
 
-            if (id == getMainCameraId()) {
-                updateFocusStateChange(result);
-                updateAWBCCTAndgains(result);
-                updateAECGainAndExposure(result);
-                Face[] faces = result.get(CaptureResult.STATISTICS_FACES);
-                if (BSGC_DEBUG)
-                    Log.d(BSGC_TAG,"onCaptureCompleted Detected Face size = " + Integer.toString(faces == null? 0 : faces.length));
-                if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
-                    updateFaceView(faces, getBsgcInfo(result, faces.length));
-                } else {
-                    updateFaceView(faces, null);
+                    if (id == getMainCameraId()) {
+                        updateFocusStateChange(result);
+                        updateAWBCCTAndgains(result);
+                        updateAECGainAndExposure(result);
+                        Face[] faces = result.get(CaptureResult.STATISTICS_FACES);
+                        if (BSGC_DEBUG)
+                            Log.d(BSGC_TAG, "onCaptureCompleted Detected Face size = " + Integer.toString(faces == null ? 0 : faces.length));
+                        if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
+                            updateFaceView(faces, getBsgcInfo(result, faces.length));
+                        } else {
+                            updateFaceView(faces, null);
+                        }
+                        updateT2tTrackerView(result);
+                    }
+
+                    detectHDRMode(result, id);
+                    processCaptureResult(result);
+                    mPostProcessor.onMetaAvailable(result);
+                    String stats_visualizer = mSettingsManager.getValue(
+                            SettingsManager.KEY_STATS_VISUALIZER_VALUE);
+                    if (stats_visualizer != null) {
+                        updateStatsView(stats_visualizer, result);
+                    } else {
+                        mUI.updateAWBInfoVisibility(View.GONE);
+                        mUI.updateAECInfoVisibility(View.GONE);
+                    }
                 }
-                updateT2tTrackerView(result);
-            }
-
-            detectHDRMode(result, id);
-            processCaptureResult(result);
-            mPostProcessor.onMetaAvailable(result);
-            String stats_visualizer = mSettingsManager.getValue(
-                    SettingsManager.KEY_STATS_VISUALIZER_VALUE);
-            if (stats_visualizer != null) {
-                updateStatsView(stats_visualizer,result);
-            } else {
-                mUI.updateAWBInfoVisibility(View.GONE);
-                mUI.updateAECInfoVisibility(View.GONE);
+            }catch (ClassCastException e){
+                Log.i(TAG,"onCaptureCompleted, result tag is string not int");
             }
         }
     };
