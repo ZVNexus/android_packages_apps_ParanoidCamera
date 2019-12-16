@@ -8611,6 +8611,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
         updateZoomSeekBarVisible();
         mUI.updateZoomSeekBar(1.0f);
+        updateZoom();
         return 1;
     }
 
