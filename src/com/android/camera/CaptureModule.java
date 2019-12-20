@@ -6026,7 +6026,8 @@ public class CaptureModule implements CameraModule, PhotoController,
                             mCaptureCallback, mCameraHandler);
                 }
             }
-        } catch (CameraAccessException | IllegalStateException | NullPointerException e) {
+        } catch (CameraAccessException | IllegalStateException | NullPointerException |
+                UnsupportedOperationException e) {
             e.printStackTrace();
         }
     }
@@ -6415,7 +6416,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
 
         // Set maximum file size.
-        long maxFileSize = mActivity.getStorageSpaceBytes() - Storage.LOW_STORAGE_THRESHOLD_BYTES;
+        long maxFileSize = mActivity.updateStorageSpace() - Storage.LOW_STORAGE_THRESHOLD_BYTES;
         if (requestedSizeLimit > 0 && requestedSizeLimit < maxFileSize) {
             maxFileSize = requestedSizeLimit;
         }
