@@ -6611,7 +6611,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
             Log.d(TAG, "Start Longshot");
             mLongshotActive = true;
-            takePicture();
+            checkSelfieFlashAndTakePicture();
         } else {
             RotateTextToast.makeText(mActivity, "Long shot not support", Toast.LENGTH_SHORT).show();
         }
