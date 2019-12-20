@@ -4357,6 +4357,9 @@ public class CaptureModule implements CameraModule, PhotoController,
         Log.d(TAG, "onResume " + (mCurrentSceneMode != null ? mCurrentSceneMode.mode : "null")
                 + (resumeFromRestartAll ? " isResumeFromRestartAll" : ""));
         mOringalCameraId = CURRENT_ID;
+        if(mCurrentSceneMode.mode == CameraMode.VIDEO){
+            enableVideoButton(false);//disable the video button before media recorder is ready
+        }
         checkRTBCameraId();
         if (!isBackCamera() && !frontIsAllowed()) {
             Log.d(TAG, "Current Mode " + mCurrentSceneMode.mode + "not support Front camera");
@@ -6286,7 +6289,6 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void setUpMediaRecorder(int cameraId) throws IOException {
         Log.d(TAG, "setUpMediaRecorder");
-        enableVideoButton(false);
         String videoSize = mSettingsManager.getValue(SettingsManager.KEY_VIDEO_QUALITY);
         int size = CameraSettings.VIDEO_QUALITY_TABLE.get(videoSize);
         Intent intent = mActivity.getIntent();
