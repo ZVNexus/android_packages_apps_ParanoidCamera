@@ -191,6 +191,12 @@ public class SettingsActivity extends PreferenceActivity {
                 if (pref.getKey().equals(SettingsManager.KEY_TONE_MAPPING)) {
                     updateToneMappingSettings();
                 }
+
+                if (pref.getKey().equals(SettingsManager.KEY_DIS) ||
+                        pref.getKey().equals(SettingsManager.KEY_EIS_VALUE)) {
+                    mSettingsManager.filterEISVideQualityOptions();
+                    updatePreference(SettingsManager.KEY_VIDEO_QUALITY);
+                }
             }
         }
     };
