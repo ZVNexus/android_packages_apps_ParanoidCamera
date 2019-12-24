@@ -1370,6 +1370,27 @@ public class SettingsManager implements ListMenu.SettingsListener {
         }
     }
 
+    private boolean getEISEnabled() {
+        boolean result = false;
+        ListPreference disPref = mPreferenceGroup.findPreference(KEY_DIS);
+        ListPreference eisPref = mPreferenceGroup.findPreference(KEY_EIS_VALUE);
+        if (disPref != null && eisPref != null) {
+            result = ("on".equals(disPref.getValue()) &&
+                    !("disable".equals(eisPref.getValue())));
+        }
+        return result;
+    }
+
+    public void filterEISVideQualityOptions() {
+        ListPreference videoQualityPref = mPreferenceGroup.findPreference(KEY_VIDEO_QUALITY);
+        if (videoQualityPref == null) return;
+        videoQualityPref.reloadInitialEntriesAndEntryValues();
+        if (filterUnsupportedOptions(videoQualityPref, getSupportedVideoSize(
+                getCurrentCameraId()))) {
+            mFilteredKeys.add(videoQualityPref.getKey());
+        }
+    }
+
     private void filterChromaflashPictureSizeOptions() {
         String scene = getValue(SettingsManager.KEY_SCENE_MODE);
         ListPreference picturePref = mPreferenceGroup.findPreference(KEY_PICTURE_SIZE);
@@ -1900,6 +1921,7 @@ public class SettingsManager implements ListMenu.SettingsListener {
         StreamConfigurationMap map = mCharacteristics.get(cameraId).get(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         Size[] sizes = map.getOutputSizes(MediaRecorder.class);
+        boolean eisEnabled = getEISEnabled();
         boolean isHeifEnabled = getSavePictureFormat() == HEIF_FORMAT;
         VideoCapabilities heifCap = null;
         if (isHeifEnabled) {
@@ -1918,6 +1940,13 @@ public class SettingsManager implements ListMenu.SettingsListener {
             if (isHeifEnabled && heifCap != null ){
                 if (!heifCap.getSupportedWidths().contains(sizes[i].getWidth()) ||
                         !heifCap.getSupportedHeights().contains(sizes[i].getHeight())){
+                    continue;
+                }
+            }
+            if (eisEnabled) {
+                // eis didn`t support less than 720P
+                if (Math.min(sizes[i].getWidth(),sizes[i].getHeight()) < 720 ||
+                        Math.max(sizes[i].getWidth(),sizes[i].getHeight()) < 1280) {
                     continue;
                 }
             }

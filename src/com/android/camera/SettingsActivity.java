@@ -191,6 +191,12 @@ public class SettingsActivity extends PreferenceActivity {
                 if (pref.getKey().equals(SettingsManager.KEY_TONE_MAPPING)) {
                     updateToneMappingSettings();
                 }
+
+                if (pref.getKey().equals(SettingsManager.KEY_DIS) ||
+                        pref.getKey().equals(SettingsManager.KEY_EIS_VALUE)) {
+                    mSettingsManager.filterEISVideQualityOptions();
+                    updatePreference(SettingsManager.KEY_VIDEO_QUALITY);
+                }
             }
         }
     };
@@ -916,7 +922,6 @@ public class SettingsActivity extends PreferenceActivity {
                 add(SettingsManager.KEY_MANUAL_WB);
                 add(SettingsManager.KEY_AF_MODE);
                 add(SettingsManager.KEY_CAPTURE_MFNR_VALUE);
-                add(SettingsManager.KEY_QCFA);
                 add(SettingsManager.KEY_FACE_DETECTION_MODE);
                 add(SettingsManager.KEY_BSGC_DETECTION);
                 add(SettingsManager.KEY_FACIAL_CONTOUR);
