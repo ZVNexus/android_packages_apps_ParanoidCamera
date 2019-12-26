@@ -3315,6 +3315,13 @@ public class CaptureModule implements CameraModule, PhotoController,
                 }
                 mCameraId[i] = cameraId;
 
+                if (mImageReader[i] != null) {
+                    mImageReader[i].close();
+                }
+                if (mRawImageReader[i] != null){
+                    mRawImageReader[i].close();
+                }
+
                 if (isClearSightOn()) {
                     if(i == getMainCameraId()) {
                         ClearSightImageProcessor.getInstance().init(map, mActivity,
@@ -3363,6 +3370,9 @@ public class CaptureModule implements CameraModule, PhotoController,
                                 }
                             };
 
+                            if (mYUVImageReader[y] != null){
+                                mYUVImageReader[y].close();
+                            }
                             mYUVImageReader[y] = ImageReader.newInstance(mYUVsize[y].getWidth(),mYUVsize[y].getHeight(),
                                     ImageFormat.YUV_420_888,3);
                             mYUVImageReader[y].setOnImageAvailableListener(yuvListener,mImageAvailableHandler);
