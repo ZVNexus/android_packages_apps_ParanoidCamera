@@ -2879,6 +2879,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                     return;
                 }
                 if (mLongshotActive) {
+                    mNumFramesArrived.getAndSet(0);
                     captureStillPictureForLongshot(captureBuilder, id);
                 } else {
                     mLongshoting = false;
