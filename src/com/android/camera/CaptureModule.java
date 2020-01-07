@@ -4416,7 +4416,6 @@ public class CaptureModule implements CameraModule, PhotoController,
         } else {
             mUI.showSurfaceView();
             mUI.stopDeepPortraitMode();
-            mUI.enableVideo(true);
         }
 
         if (!mFirstTimeInitialized) {
@@ -5318,6 +5317,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         @Override
         public void onConfigured(CameraCaptureSession cameraCaptureSession) {
             Log.d(TAG, "mSessionListener session onConfigured");
+            enableVideoButton(true);
             setCameraModeSwitcherAllowed(true);
             int cameraId = getMainCameraId();
             mCurrentSession = cameraCaptureSession;
@@ -5357,6 +5357,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
         @Override
         public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
+            enableVideoButton(true);
             setCameraModeSwitcherAllowed(true);
             Toast.makeText(mActivity, "Video Failed", Toast.LENGTH_SHORT).show();
         }
@@ -6479,7 +6480,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             mMediaRecorder.setOrientationHint(rotation);
         }
         prepareMediaRecorder();
-        enableVideoButton(true);
         mMediaRecorder.setOnErrorListener(this);
         mMediaRecorder.setOnInfoListener(this);
     }
