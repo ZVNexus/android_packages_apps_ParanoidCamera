@@ -3677,7 +3677,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     private boolean captureWaitImageReceive() {
-        return mIsSupportedQcfa || isMFNREnabled() || isHDREnable();
+        return !mLongshoting && (mIsSupportedQcfa || isMFNREnabled() || isHDREnable());
     }
 
     private Size parsePictureSize(String value) {
