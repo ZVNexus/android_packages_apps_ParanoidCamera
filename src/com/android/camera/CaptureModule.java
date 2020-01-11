@@ -5845,11 +5845,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         applyVideoFlash(mVideoPreviewRequestBuilder);
         CaptureRequest captureRequest = null;
         try {
-            if (mMediaRecorderPausing) {
-                captureRequest = mVideoPreviewRequestBuilder.build();
-            } else {
-                captureRequest = mVideoRecordRequestBuilder.build();
-            }
+            captureRequest = mVideoRecordRequestBuilder.build();
             if (mCurrentSession instanceof CameraConstrainedHighSpeedCaptureSession) {
                 CameraConstrainedHighSpeedCaptureSession session =
                         (CameraConstrainedHighSpeedCaptureSession) mCurrentSession;
@@ -5860,6 +5856,9 @@ public class CaptureModule implements CameraModule, PhotoController,
                                 mVideoRecordRequestBuilder : mVideoPreviewRequestBuilder),
                                 mCaptureCallback, mCameraHandler);
             } else {
+                if (mMediaRecorderPausing) {
+                    captureRequest = mVideoPreviewRequestBuilder.build();
+                }
                 mCurrentSession.setRepeatingRequest(captureRequest, mCaptureCallback,
                         mCameraHandler);
             }
