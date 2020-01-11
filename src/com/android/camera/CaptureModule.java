@@ -1258,7 +1258,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             if (mPaused) {
                 return;
             }
-
             mCameraDevice[id] = cameraDevice;
             mCameraOpened[id] = true;
 
@@ -1814,6 +1813,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     private void createSession(final int id) {
         Log.d(TAG, "createSession,id: " + id + ",mPaused:" + mPaused + ",mCameraOpened:" + !mCameraOpened[id] + ",mCameraDevice:"+ (mCameraDevice[id] == null));
         if (mPaused || !mCameraOpened[id] || (mCameraDevice[id] == null)) return;
+        setCameraModeSwitcherAllowed(false);
         List<Surface> list = new LinkedList<Surface>();
         mState[id] = STATE_PREVIEW;
         mControlAFMode = CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
@@ -2023,6 +2023,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void createSessionForVideo(final int cameraId) {
         mNeedSetupMediaRecorder = false;
+        setCameraModeSwitcherAllowed(false);
         try {
             setUpMediaRecorder(cameraId);
             mCameraHandler.removeMessages(CANCEL_TOUCH_FOCUS, mCameraId[cameraId]);
