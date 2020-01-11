@@ -935,20 +935,16 @@ public class CaptureModule implements CameraModule, PhotoController,
         public void onCaptureProgressed(CameraCaptureSession session,
                                         CaptureRequest request,
                                         CaptureResult partialResult) {
-            try {
-                int id = (int) partialResult.getRequest().getTag();
-                if (id == getMainCameraId()) {
-                    Face[] faces = partialResult.get(CaptureResult.STATISTICS_FACES);
-                    if (BSGC_DEBUG)
-                        Log.d(BSGC_TAG, "onCaptureProgressed Detected Face size = " + Integer.toString(faces == null ? 0 : faces.length));
-                    if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
-                        updateFaceView(faces, getBsgcInfo(partialResult, faces.length));
-                    } else {
-                        updateFaceView(faces, null);
-                    }
+            int id = (int) partialResult.getRequest().getTag();
+            if (id == getMainCameraId()) {
+                Face[] faces = partialResult.get(CaptureResult.STATISTICS_FACES);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG, "onCaptureProgressed Detected Face size = " + Integer.toString(faces == null ? 0 : faces.length));
+                if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
+                    updateFaceView(faces, getBsgcInfo(partialResult, faces.length));
+                } else {
+                    updateFaceView(faces, null);
                 }
-            }catch (ClassCastException e){
-                Log.i(TAG,"onCaptureProgressed, result tag is string not int");
             }
         }
 
@@ -956,37 +952,33 @@ public class CaptureModule implements CameraModule, PhotoController,
         public void onCaptureCompleted(CameraCaptureSession session,
                                        CaptureRequest request,
                                        TotalCaptureResult result) {
-            try {
-                int id = (int) result.getRequest().getTag();
-                if (id == getMainCameraId()) {
-                    updateFocusStateChange(result);
-                    updateAWBCCTAndgains(result);
-                    updateAECGainAndExposure(result);
-                    Face[] faces = result.get(CaptureResult.STATISTICS_FACES);
-                    if (BSGC_DEBUG)
-                        Log.d(BSGC_TAG, "onCaptureCompleted Detected Face size = " + Integer.toString(faces == null ? 0 : faces.length));
-                    if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
-                        updateFaceView(faces, getBsgcInfo(result, faces.length));
-                    } else {
-                        updateFaceView(faces, null);
-                    }
-                    updateT2tTrackerView(result);
-                }
-
-                waitEISAndStopMediaRecorder(result);
-                detectHDRMode(result, id);
-                processCaptureResult(result);
-                mPostProcessor.onMetaAvailable(result);
-                String stats_visualizer = mSettingsManager.getValue(
-                        SettingsManager.KEY_STATS_VISUALIZER_VALUE);
-                if (stats_visualizer != null) {
-                    updateStatsView(stats_visualizer, result);
+            int id = (int) result.getRequest().getTag();
+            if (id == getMainCameraId()) {
+                updateFocusStateChange(result);
+                updateAWBCCTAndgains(result);
+                updateAECGainAndExposure(result);
+                Face[] faces = result.get(CaptureResult.STATISTICS_FACES);
+                if (BSGC_DEBUG)
+                    Log.d(BSGC_TAG, "onCaptureCompleted Detected Face size = " + Integer.toString(faces == null ? 0 : faces.length));
+                if (faces != null && (isBsgcDetecionOn() || isFacialContourOn() || isFacePointOn())) {
+                    updateFaceView(faces, getBsgcInfo(result, faces.length));
                 } else {
-                    mUI.updateAWBInfoVisibility(View.GONE);
-                    mUI.updateAECInfoVisibility(View.GONE);
+                    updateFaceView(faces, null);
                 }
-            } catch (ClassCastException e) {
-                Log.i(TAG, "onCaptureCompleted, result tag is string not int");
+                updateT2tTrackerView(result);
+            }
+
+            waitEISAndStopMediaRecorder(result);
+            detectHDRMode(result, id);
+            processCaptureResult(result);
+            mPostProcessor.onMetaAvailable(result);
+            String stats_visualizer = mSettingsManager.getValue(
+                    SettingsManager.KEY_STATS_VISUALIZER_VALUE);
+            if (stats_visualizer != null) {
+                updateStatsView(stats_visualizer, result);
+            } else {
+                mUI.updateAWBInfoVisibility(View.GONE);
+                mUI.updateAECInfoVisibility(View.GONE);
             }
         }
     };
@@ -3053,10 +3045,14 @@ public class CaptureModule implements CameraModule, PhotoController,
     private void captureStillPictureForLongshot(CaptureRequest.Builder captureBuilder, int id) throws CameraAccessException{
         List<CaptureRequest> burstList = new ArrayList<>();
         int burstShotFpsNums = PersistUtil.isBurstShotFpsNums();
+        CaptureRequest.Builder builder = getRequestBuilder(id);
+        addPreviewSurface(builder, null, id);
+        applyCommonSettings(builder, id);
+        applyFlash(builder, id);
         for (int i = 0; i < PersistUtil.getLongshotShotLimit(); i++) {
             for (int j = 0; j < burstShotFpsNums; j++) {
-                mPreviewRequestBuilder[id].setTag("preview");
-                burstList.add(mPreviewRequestBuilder[id].build());
+                builder.setTag("preview");
+                burstList.add(builder.build());
             }
             captureBuilder.setTag("capture");
             burstList.add(captureBuilder.build());
