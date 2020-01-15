@@ -3737,7 +3737,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
             if (null != mRawImageReader[i]){
                 mRawImageReader[i].close();
-                mRawImageReader = null;
+                mRawImageReader[i] = null;
             }
         }
         for (int i = mYUVImageReader.length-1; i>=0 ;i--){
@@ -3803,7 +3803,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
                 if (null != mRawImageReader[i]){
                     mRawImageReader[i].close();
-                    mRawImageReader = null;
+                    mRawImageReader[i] = null;
                 }
             }
 
