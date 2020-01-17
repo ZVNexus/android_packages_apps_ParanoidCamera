@@ -767,7 +767,15 @@ public class CaptureModule implements CameraModule, PhotoController,
                     if (uri != null)
                         mActivity.notifyNewMedia(uri);
                     mActivity.updateStorageSpaceAndHint();
-                    if (mLastJpegData != null) mActivity.updateThumbnail(mLastJpegData);
+                    if (mLastJpegData != null) {
+                        String path = mActivity.getPathFromUri(uri);
+                        if (path != null && path.endsWith(Storage.HEIF_POSTFIX)) {
+                            mLastJpegData = null;
+                            mActivity.updateThumbnail(mLastJpegData);
+                        } else {
+                            mActivity.updateThumbnail(mLastJpegData);
+                        }
+                    }
                 }
             });
             mediaSaveNotifyThread = null;
@@ -3369,10 +3377,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                                             }
                                         });
                                     }
-//                                    final Image image = reader.acquireNextImage();
-//                                    byte[] bytes = getYUVFromImage(image);
-//                                    mActivity.getMediaSaveService().addRawImage(bytes, title, "yuv");
-//                                    image.close();
                                 }
                             };
 
@@ -3433,8 +3437,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                                         } else {
                                             orientation = CameraUtil.getJpegRotation(getMainCameraId(),mOrientation);
                                         }
-
-
 
                                         if (mIntentMode != CaptureModule.INTENT_MODE_NORMAL) {
                                             mJpegImageData = bytes;
@@ -3563,8 +3565,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                         } else {
                             orientation = CameraUtil.getJpegRotation(getMainCameraId(),mOrientation);
                         }
-
-
 
                         String saveFormat = image.getFormat() == ImageFormat.HEIC? "heic" : "jpeg";
 

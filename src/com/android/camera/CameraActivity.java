@@ -711,7 +711,7 @@ public class CameraActivity extends Activity
         return mDataAdapter;
     }
 
-    private String getPathFromUri(Uri uri) {
+    public String getPathFromUri(Uri uri) {
         String[] projection = {
                 MediaStore.Images.Media.DATA
         };
@@ -819,8 +819,9 @@ public class CameraActivity extends Activity
 
         @Override
         protected Bitmap doInBackground(Void... params) {
-            if (mJpegData != null)
+            if (mJpegData != null) {
                 return decodeImageCenter(null);
+            }
 
             LocalDataAdapter adapter = getDataAdapter();
             ImageData img = adapter.getImageData(1);
@@ -886,7 +887,7 @@ public class CameraActivity extends Activity
                         }
                         orientation = Exif.getOrientation(exif);
                     } catch (IOException e) {
-                        // ignore
+                        e.printStackTrace();
                     }
                 }
             }
