@@ -442,6 +442,8 @@ public class PostProcessor{
     public void onImageReaderReady(ImageReader imageReader, Size maxSize, Size pictureSize) {
         mImageReader = imageReader;
         if(mUseZSL) {
+            if (mZSLReprocessImageReader != null)
+                mZSLReprocessImageReader.close();
             mZSLReprocessImageReader = ImageReader.newInstance(pictureSize.getWidth(), pictureSize.getHeight(), ImageFormat.JPEG, mMaxRequiredImageNum);
             mZSLReprocessImageReader.setOnImageAvailableListener(processedImageAvailableListener, mHandler);
         }
@@ -587,7 +589,7 @@ public class PostProcessor{
                                                    CaptureRequest request,
                                                    TotalCaptureResult result) {
                         Log.d(TAG, "reprocessImage onCaptureCompleted");
-                        if (mActivity != null) {
+                        if (mController.isLongShotActive() && mActivity != null) {
                             mActivity.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
