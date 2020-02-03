@@ -767,7 +767,15 @@ public class CaptureModule implements CameraModule, PhotoController,
                     if (uri != null)
                         mActivity.notifyNewMedia(uri);
                     mActivity.updateStorageSpaceAndHint();
-                    if (mLastJpegData != null) mActivity.updateThumbnail(mLastJpegData);
+                    if (mLastJpegData != null) {
+                        String path = mActivity.getPathFromUri(uri);
+                        if (path != null && path.endsWith(Storage.HEIF_POSTFIX)) {
+                            mLastJpegData = null;
+                            mActivity.updateThumbnail(mLastJpegData);
+                        } else {
+                            mActivity.updateThumbnail(mLastJpegData);
+                        }
+                    }
                 }
             });
             mediaSaveNotifyThread = null;
@@ -3086,6 +3094,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                                             CaptureRequest request,
                                             CaptureFailure result) {
                     Log.d(TAG, "captureStillPictureForCommon onCaptureFailed: " + id);
+                    enableShutterAndVideoOnUiThread(id, true);
                 }
 
                 @Override
@@ -3369,10 +3378,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                                             }
                                         });
                                     }
-//                                    final Image image = reader.acquireNextImage();
-//                                    byte[] bytes = getYUVFromImage(image);
-//                                    mActivity.getMediaSaveService().addRawImage(bytes, title, "yuv");
-//                                    image.close();
                                 }
                             };
 
@@ -3433,8 +3438,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                                         } else {
                                             orientation = CameraUtil.getJpegRotation(getMainCameraId(),mOrientation);
                                         }
-
-
 
                                         if (mIntentMode != CaptureModule.INTENT_MODE_NORMAL) {
                                             mJpegImageData = bytes;
@@ -3563,8 +3566,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                         } else {
                             orientation = CameraUtil.getJpegRotation(getMainCameraId(),mOrientation);
                         }
-
-
 
                         String saveFormat = image.getFormat() == ImageFormat.HEIC? "heic" : "jpeg";
 
@@ -4432,7 +4433,6 @@ public class CaptureModule implements CameraModule, PhotoController,
         } else {
             mUI.showSurfaceView();
             mUI.stopDeepPortraitMode();
-            mUI.enableVideo(true);
         }
 
         if (!mFirstTimeInitialized) {
@@ -5334,6 +5334,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         @Override
         public void onConfigured(CameraCaptureSession cameraCaptureSession) {
             Log.d(TAG, "mSessionListener session onConfigured");
+            enableVideoButton(true);
             setCameraModeSwitcherAllowed(true);
             int cameraId = getMainCameraId();
             mCurrentSession = cameraCaptureSession;
@@ -5373,6 +5374,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
         @Override
         public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
+            enableVideoButton(true);
             setCameraModeSwitcherAllowed(true);
             Toast.makeText(mActivity, "Video Failed", Toast.LENGTH_SHORT).show();
         }
@@ -6575,7 +6577,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             mMediaRecorder.setOrientationHint(rotation);
         }
         prepareMediaRecorder();
-        enableVideoButton(true);
         mMediaRecorder.setOnErrorListener(this);
         mMediaRecorder.setOnInfoListener(this);
     }
@@ -7830,6 +7831,10 @@ public class CaptureModule implements CameraModule, PhotoController,
         if (mCropRegion[id] == null) {
             Log.d(TAG, "transformTouchCoords crop region is null at " + id);
             mInTAF = false;
+            return;
+        }
+        if (mCropRegion[id] == null) {
+            Log.d(TAG, "crop region is null at " + id);
             return;
         }
         Point p = mUI.getSurfaceViewSize();
