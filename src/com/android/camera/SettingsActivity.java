@@ -1112,6 +1112,7 @@ public class SettingsActivity extends PreferenceActivity {
         updateMultiPreference(SettingsManager.KEY_STATS_VISUALIZER_VALUE);
         updatePictureSizePreferenceButton();
         updateVideoHDRPreference();
+        updateZslPreference();
         updateFormatPreference();
         updateStoragePreference();
 
@@ -1166,7 +1167,6 @@ public class SettingsActivity extends PreferenceActivity {
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        updateZslPreference();
     }
 
     private void updateStoragePreference() {
