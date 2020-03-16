@@ -2391,6 +2391,13 @@ public class CaptureModule implements CameraModule, PhotoController,
             isFirstDefault = setUpLocalMode(i, characteristics, removeList,
                     isFirstDefault, cameraId);
         }
+        if (mCurrentSceneMode == null) {
+            int index = mIntentMode == INTENT_MODE_VIDEO ?
+                    CameraMode.VIDEO.ordinal() : CameraMode.DEFAULT.ordinal();
+
+            mCurrentModeIndex =  mNextModeIndex = index;
+            mCurrentSceneMode = mSceneCameraIds.get(index);
+        }
         for (int i = 0; i < removeList.length; i++) {
             if (!removeList[i]) {
                 continue;
@@ -2452,7 +2459,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                 if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
                     mSceneCameraIds.get(CameraMode.RTB.ordinal()).frontCameraId = cameraId;
                 } else {
-                    if (mSceneCameraIds.get(CameraMode.RTB.ordinal()).rearCameraId != 0) {
+                    if (mSceneCameraIds.get(CameraMode.RTB.ordinal()).rearCameraId >= 0) {
                         break;
                     }
                     mSceneCameraIds.get(CameraMode.RTB.ordinal()).rearCameraId = cameraId;
@@ -2465,7 +2472,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                 if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
                     mSceneCameraIds.get(CameraMode.SAT.ordinal()).frontCameraId = cameraId;
                 } else {
-                    if (mSceneCameraIds.get(CameraMode.SAT.ordinal()).rearCameraId != 0) {
+                    if (mSceneCameraIds.get(CameraMode.SAT.ordinal()).rearCameraId >= 0) {
                         break;
                     }
                     // if dual camera is enabled, video rear camera will be changed to SAT
@@ -8839,8 +8846,8 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private class SceneModule {
         CameraMode mode = CameraMode.DEFAULT;
-        public int rearCameraId;
-        public int frontCameraId;
+        public int rearCameraId = -1;
+        public int frontCameraId = -1;
         public int auxCameraId = 0;
         public int swithCameraId = -1;
         public int getCurrentId() {
@@ -8856,6 +8863,9 @@ public class CaptureModule implements CameraModule, PhotoController,
                 if (swithCameraId != -1){
                     cameraId = swithCameraId;
                 }
+            }
+            if (cameraId == -1){
+                cameraId = 0;
             }
             return cameraId;
         }
