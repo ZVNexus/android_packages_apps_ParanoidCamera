@@ -53,7 +53,7 @@ import android.widget.TextView;
 import android.widget.EditText;
 import android.text.InputType;
 
-import org.codeaurora.snapcam.R;
+import co.aospa.camera.R;
 import com.android.camera.util.CameraUtil;
 import com.android.camera.ui.RotateTextToast;
 

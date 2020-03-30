@@ -27,42 +27,58 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package  org.codeaurora.snapcam.filter;
+package co.aospa.camera.wrapper;
 
-import com.adobe.xmp.XMPException;
-import com.adobe.xmp.XMPMeta;
-import com.adobe.xmp.XMPMetaFactory;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
-import android.util.Base64;
+import android.os.SystemProperties;
+import android.util.Log;
 
-public class GImage{
-    public final static String NAMESPACE_URL = "http://ns.google.com/photos/1.0/image/";
-    public final static String PREFIX = "GImage";
-    public final static String PROPERTY_MIME = "Mime";
-    public final static String PROPERTY_DATA = "Data";
+public class Wrapper{
+    protected final static boolean DEBUG =
+            SystemProperties.getBoolean("persist.sys.camera.wrapper.debug", false);
+    protected final static String TAG = "Wrapper";
 
-    static {
-        try {
-            XMPMetaFactory.getSchemaRegistry().registerNamespace(
-                    NAMESPACE_URL, PREFIX);
-        } catch (XMPException e) {
-            e.printStackTrace();
+    protected static int getFieldValue(Field field, int def){
+        int value = def;
+        if ( field != null ) {
+            try {
+                value = (int) field.get(null);
+            }catch (Exception exception){
+                exception.printStackTrace();
+            }
         }
+        return value;
     }
 
-    private  String mMime = "image/jpeg";
-    private String mData;
-
-    public GImage(byte[] data, String mime){
-        mData = Base64.encodeToString(data, Base64.DEFAULT);
-        mMime = mime;
+    protected static String getFieldValue(Field field, String def){
+        String value = def;
+        if ( field != null ) {
+            try {
+                value = (String) field.get(null);
+            }catch (Exception exception){
+                exception.printStackTrace();
+            }
+        }
+        return value;
     }
+    protected static Field getField(Class<?> classInstance, String name) {
+        Log.d(TAG, "getField:" + classInstance + " field:"+ name);
+        if ( DEBUG ){
+            Log.e(TAG, "" + classInstance + " no " + name);
+            return null;
+        }
 
-    public String getMime(){
-        return mMime;
-    }
-
-    public String getData(){
-        return mData;
+        Field field = null;
+        try{
+            field = classInstance.getField(name);
+            Log.d(TAG, "getField:" + classInstance + " " + name);
+        }catch (Exception exception){
+            exception.printStackTrace();
+        }
+        return field;
     }
 }
