@@ -27,33 +27,20 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.codeaurora.snapcam.wrapper;
+package co.aospa.camera.wrapper;
 
 import java.util.List;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import android.hardware.Camera.CameraInfo;
-import android.media.CamcorderProfile;
 import android.util.Log;
 
-public class CamcorderProfileWrapper extends Wrapper{
-    public static final int QUALITY_VGA = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_VGA"), -1);
-    public final static int QUALITY_4KDCI = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_4KDCI"), -1);
-    public final static int QUALITY_TIME_LAPSE_VGA = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_TIME_LAPSE_VGA"), -1);
-    public static final int QUALITY_TIME_LAPSE_4KDCI = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_TIME_LAPSE_4KDCI"), -1);
-    public final static int QUALITY_HIGH_SPEED_CIF = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_HIGH_SPEED_CIF"), -1);
-        public static final int QUALITY_HIGH_SPEED_VGA = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_HIGH_SPEED_VGA"), -1);
-    public final static int QUALITY_HIGH_SPEED_4KDCI = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_HIGH_SPEED_4KDCI"), -1);
-    public static final int QUALITY_QHD = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_QHD"), -1);
-    public final static int QUALITY_2k = getFieldValue(
-            getField(CamcorderProfile.class, "QUALITY_2k"), -1);
+public class CameraInfoWrapper extends Wrapper{
+    private final static String TAG = "CameraInfo";
+    public final static int CAMERA_SUPPORT_MODE_ZSL = getFieldValue(
+            getField(CameraInfo.class, "CAMERA_SUPPORT_MODE_ZSL"), 2);
+    public static final int CAMERA_SUPPORT_MODE_NONZSL = getFieldValue(
+            getField(CameraInfo.class, "CAMERA_SUPPORT_MODE_NONZSL"), 3);
+
 }
