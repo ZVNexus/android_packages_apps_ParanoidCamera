@@ -31,7 +31,7 @@ import android.widget.FrameLayout;
 import com.android.camera.ui.*;
 import com.android.camera.util.CameraUtil;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public abstract class CameraUI implements
         PreviewGestures.SwipeListener,

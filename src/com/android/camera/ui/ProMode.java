@@ -45,7 +45,7 @@ import android.widget.TextView;
 
 import com.android.camera.SettingsManager;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import java.util.ArrayList;
 

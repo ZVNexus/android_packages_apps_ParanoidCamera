@@ -26,7 +26,7 @@ import android.util.Log;
 import com.android.camera.data.LocalMediaData.PhotoData;
 import com.android.camera.exif.ExifInterface;
 import com.android.camera.exif.ExifTag;
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import java.io.File;
 import java.io.FileNotFoundException;

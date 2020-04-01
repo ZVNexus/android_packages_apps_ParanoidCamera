@@ -48,7 +48,7 @@ import com.android.camera.MediaSaveService.OnMediaSavedListener;
 import com.android.camera.exif.ExifInterface;
 import com.android.camera.tinyplanet.TinyPlanetPreview.PreviewSizeListener;
 import com.android.camera.util.XmpUtil;
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;

@@ -27,7 +27,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class CameraControlsBar extends FrameLayout implements Rotatable {
 

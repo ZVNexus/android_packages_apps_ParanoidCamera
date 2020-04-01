@@ -42,7 +42,7 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -112,8 +112,8 @@ import com.android.camera.util.AccessibilityUtils;
 import com.android.camera.util.VendorTagUtil;
 import com.android.internal.util.MemInfoReader;
 
-import co.paranoidandroid.camera.R;
-import org.codeaurora.snapcam.filter.ClearSightImageProcessor;
+import co.aospa.camera.R;
+import co.aospa.camera.filter.ClearSightImageProcessor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -1106,7 +1106,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                             }
                             new AlertDialog.Builder(mActivity)
                                     .setTitle("Camera Initialization Failed")
-                                    .setMessage("Closing SnapdragonCamera")
+                                    .setMessage("Closing ParanoidCamera")
                                     .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int which) {
                                             closeCamera();

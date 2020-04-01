@@ -26,7 +26,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.view.ScaleGestureDetector;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class ZoomRenderer extends OverlayRenderer
         implements ScaleGestureDetector.OnScaleGestureListener {

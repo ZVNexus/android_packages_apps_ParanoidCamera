@@ -46,7 +46,7 @@ import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import com.android.camera.ui.DotsView;
 import com.android.camera.ui.DotsViewItem;

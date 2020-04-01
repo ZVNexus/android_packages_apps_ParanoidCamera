@@ -31,7 +31,7 @@ import android.view.View;
 
 import com.android.camera.util.PhotoSphereHelper;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class ModuleSwitcher extends View {
 

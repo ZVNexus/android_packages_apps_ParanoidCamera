@@ -48,7 +48,7 @@ import com.android.camera.PhotoUI.SurfaceTextureSizeChangedListener;
 import com.android.camera.ui.*;
 import com.android.camera.util.CameraUtil;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class VideoUI extends CameraUI implements PieRenderer.PieListener,
         PreviewGestures.SingleTapListener,

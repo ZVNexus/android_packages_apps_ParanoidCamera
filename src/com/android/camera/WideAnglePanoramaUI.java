@@ -45,7 +45,7 @@ import android.widget.TextView;
 
 import com.android.camera.ui.*;
 import com.android.camera.util.CameraUtil;
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 /**
  * The UI of {@link WideAnglePanoramaModule}.

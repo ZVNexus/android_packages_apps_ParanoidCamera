@@ -52,7 +52,7 @@ import android.widget.SeekBar;
 import com.android.camera.CameraActivity;
 import com.android.camera.drawable.TextDrawable;
 import com.android.camera.ui.ProgressRenderer.VisibilityListener;
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import java.util.ArrayList;
 import java.util.List;

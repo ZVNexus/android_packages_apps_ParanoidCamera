@@ -23,7 +23,7 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 /**
  * GridView is a view which directly overlays the preview and draws

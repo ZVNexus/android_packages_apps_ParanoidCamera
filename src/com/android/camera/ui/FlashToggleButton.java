@@ -37,7 +37,7 @@ import android.widget.ImageView;
 
 import com.android.camera.SettingsManager;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class FlashToggleButton extends RotateImageView {
     private SettingsManager mSettingsManager;

@@ -27,7 +27,7 @@ import com.android.camera.ui.PieItem;
 import com.android.camera.ui.PieItem.OnClickListener;
 import com.android.camera.ui.PieRenderer;
 import com.android.camera.ui.RotateTextToast;
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import java.util.ArrayList;
 import java.util.HashMap;

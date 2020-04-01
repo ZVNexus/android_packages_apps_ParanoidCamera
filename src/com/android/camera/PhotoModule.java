@@ -90,12 +90,12 @@ import com.android.camera.util.GcamHelper;
 import com.android.camera.util.PersistUtil;
 import com.android.camera.util.UsageStatistics;
 
-import org.codeaurora.snapcam.wrapper.ParametersWrapper;
-import org.codeaurora.snapcam.wrapper.CameraInfoWrapper;
-import org.codeaurora.snapcam.filter.GDepth;
-import org.codeaurora.snapcam.filter.GImage;
+import co.aospa.camera.wrapper.ParametersWrapper;
+import co.aospa.camera.wrapper.CameraInfoWrapper;
+import co.aospa.camera.filter.GDepth;
+import co.aospa.camera.filter.GImage;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 import android.widget.EditText;
 import android.app.AlertDialog;

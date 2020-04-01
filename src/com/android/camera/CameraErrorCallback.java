@@ -19,7 +19,7 @@ package com.android.camera;
 import android.util.Log;
 import android.widget.Toast;
 import com.android.camera.ui.RotateTextToast;
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class CameraErrorCallback
         implements android.hardware.Camera.ErrorCallback {

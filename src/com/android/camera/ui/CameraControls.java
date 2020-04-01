@@ -33,7 +33,7 @@ import java.util.ArrayList;
 
 import com.android.camera.Storage;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class CameraControls extends RotatableLayout implements Rotatable {
 

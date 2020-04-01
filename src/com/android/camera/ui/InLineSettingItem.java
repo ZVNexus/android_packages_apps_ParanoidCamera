@@ -23,7 +23,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.camera.ListPreference;
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 /**
  * A one-line camera setting could be one of three types: knob, switch or restore

@@ -35,9 +35,9 @@ import com.android.camera.PhotoUI;
 import com.android.camera.util.CameraUtil;
 import com.android.camera.util.PersistUtil;
 
-import org.codeaurora.snapcam.wrapper.ExtendedFaceWrapper;
+import co.aospa.camera.wrapper.ExtendedFaceWrapper;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class FaceView extends View
     implements FocusIndicator, Rotatable,

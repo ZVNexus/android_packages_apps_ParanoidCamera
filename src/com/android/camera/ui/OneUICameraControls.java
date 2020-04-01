@@ -41,7 +41,7 @@ import com.android.camera.CaptureModule;
 import com.android.camera.Storage;
 import com.android.camera.imageprocessor.filter.BeautificationFilter;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 public class OneUICameraControls extends RotatableLayout {
 

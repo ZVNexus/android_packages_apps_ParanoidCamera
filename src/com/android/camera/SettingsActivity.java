@@ -48,7 +48,7 @@ import android.view.WindowManager;
 import android.util.Log;
 import android.widget.Toast;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 import com.android.camera.util.CameraUtil;
 
 import java.util.List;

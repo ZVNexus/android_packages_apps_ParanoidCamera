@@ -23,7 +23,7 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
 
-import co.paranoidandroid.camera.R;
+import co.aospa.camera.R;
 
 /** A {@code ListPreference} where each entry has a corresponding icon. */
 public class IconListPreference extends ListPreference {
