@@ -646,15 +646,15 @@ public class VideoModule implements CameraModule,
         for(int i=0;i<numOfCams;i++) {
             CameraHolder.CameraInfo info = CameraHolder.instance().getCameraInfo()[i];
             if(info.facing == CameraHolder.CameraInfo.CAMERA_FACING_BACK) {
-                iconIds[i] = R.drawable.ic_switch_back;
+                iconIds[i] = R.drawable.ic_switch_camera;
                 entries[i] = mActivity.getResources().getString(R.string.pref_camera_id_entry_back);
                 labels[i] = mActivity.getResources().getString(R.string.pref_camera_id_label_back);
-                largeIconIds[i] = R.drawable.ic_switch_back;
+                largeIconIds[i] = R.drawable.ic_switch_camera;
             } else {
-                iconIds[i] = R.drawable.ic_switch_front;
+                iconIds[i] = R.drawable.ic_switch_camera;
                 entries[i] = mActivity.getResources().getString(R.string.pref_camera_id_entry_front);
                 labels[i] = mActivity.getResources().getString(R.string.pref_camera_id_label_front);
-                largeIconIds[i] = R.drawable.ic_switch_front;
+                largeIconIds[i] = R.drawable.ic_switch_camera;
             }
         }
 

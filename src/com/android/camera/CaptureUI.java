@@ -504,7 +504,6 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
 
         mActivity.setPreviewGestures(mGestures);
         mRecordingTimeRect.setVisibility(View.GONE);
-        showFirstTimeHelp();
     }
 
     protected void showCapturedImageForReview(byte[] jpegData, int orientation) {
@@ -653,7 +652,6 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         mShutterButton.setOnClickListener(new View.OnClickListener()  {
             @Override
             public void onClick(View v) {
-                    doShutterAnimation();
             }
         });
         mVideoButton.setOnClickListener(new View.OnClickListener() {
@@ -1208,12 +1206,6 @@ public class CaptureUI implements FocusOverlayManager.FocusUI,
         if (mModule.getCurrentIntentMode() != CaptureModule.INTENT_MODE_NORMAL) {
             mCameraControls.setIntentMode(mModule.getCurrentIntentMode());
         }
-    }
-
-    public void doShutterAnimation() {
-        AnimationDrawable frameAnimation = (AnimationDrawable) mShutterButton.getDrawable();
-        frameAnimation.stop();
-        frameAnimation.start();
     }
 
     public void showUI() {

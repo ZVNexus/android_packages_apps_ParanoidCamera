@@ -1985,7 +1985,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                 mActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mUI.doShutterAnimation();
                     }
                 });
             }
@@ -2000,7 +1999,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                 mActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mUI.doShutterAnimation();
                     }
                 });
             }

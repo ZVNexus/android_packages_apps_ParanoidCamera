@@ -848,7 +848,6 @@ public class PhotoModule
                     mActivity.getString(R.string.setting_off_value));
         }
         updateCameraSettings();
-        showTapToFocusToastIfNeeded();
         resetManual3ASettings();
         resetMiscSettings();
     }
@@ -1143,8 +1142,6 @@ public class PhotoModule
                     mLongshotActive = false;
                     return;
                 }
-
-                mUI.doShutterAnimation();
 
                 Location loc = getLocationAccordPictureFormat(mParameters.get(KEY_PICTURE_FORMAT));
 
@@ -2345,15 +2342,15 @@ public class PhotoModule
         for(int i=0;i<numOfCams;i++) {
             CameraHolder.CameraInfo info = CameraHolder.instance().getCameraInfo()[i];
             if(info.facing == CameraHolder.CameraInfo.CAMERA_FACING_BACK) {
-                iconIds[i] = R.drawable.ic_switch_back;
+                iconIds[i] = R.drawable.ic_switch_camera;
                 entries[i] = mActivity.getResources().getString(R.string.pref_camera_id_entry_back);
                 labels[i] = mActivity.getResources().getString(R.string.pref_camera_id_label_back);
-                largeIconIds[i] = R.drawable.ic_switch_back;
+                largeIconIds[i] = R.drawable.ic_switch_camera;
             } else {
-                iconIds[i] = R.drawable.ic_switch_front;
+                iconIds[i] = R.drawable.ic_switch_camera;
                 entries[i] = mActivity.getResources().getString(R.string.pref_camera_id_entry_front);
                 labels[i] = mActivity.getResources().getString(R.string.pref_camera_id_label_front);
-                largeIconIds[i] = R.drawable.ic_switch_front;
+                largeIconIds[i] = R.drawable.ic_switch_camera;
             }
         }
 
@@ -2385,12 +2382,6 @@ public class PhotoModule
             if (mGraphView != null) {
                 mGraphView.setRotation(-mOrientation);
             }
-        }
-
-        // Show the toast after getting the first orientation changed.
-        if (mHandler.hasMessages(SHOW_TAP_TO_FOCUS_TOAST)) {
-            mHandler.removeMessages(SHOW_TAP_TO_FOCUS_TOAST);
-            showTapToFocusToast();
         }
 
         // need to re-initialize mGraphView to show histogram on rotate
