@@ -15,5 +15,5 @@
 -->
 <resources>
     <integer name="SRI_pano_layout_weight">3</integer>
-    <dimen name="count_down_title_margin_top">90dp</dimen>
+    <dimen name="count_down_title_margin_top">120dp</dimen>
 </resources>

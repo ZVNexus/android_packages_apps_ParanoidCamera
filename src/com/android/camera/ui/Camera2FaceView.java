@@ -31,14 +31,17 @@ package com.android.camera.ui;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.params.Face;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
 
 import com.android.camera.ExtendedFace;
+import com.android.camera.SettingsManager;
 import com.android.camera.util.CameraUtil;
 
 public class Camera2FaceView extends FaceView {
@@ -52,6 +55,7 @@ public class Camera2FaceView extends FaceView {
     private Face[] mPendingFaces;
     private ExtendedFace[] mPendingExFaces;
     private Rect mCameraBound;
+    private Rect mOriginalCameraBound;
     private float mZoom = 1.0f;
     private Handler mHandler = new Handler() {
         @Override
@@ -66,13 +70,29 @@ public class Camera2FaceView extends FaceView {
             }
         }
     };
+    private boolean mFacePointsEnable = false;
+    private boolean mFacialContourEnable = false;
+    private boolean mBsgcEnable = false;
 
     public Camera2FaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
+    public void initMode() {
+        mBsgcEnable = "enable".equals(SettingsManager.getInstance().getValue(
+                SettingsManager.KEY_BSGC_DETECTION));
+        mFacialContourEnable = "enable".equals(SettingsManager.getInstance().getValue(
+                SettingsManager.KEY_FACIAL_CONTOUR));
+        mFacePointsEnable = "2".equals(SettingsManager.getInstance().getValue(
+                SettingsManager.KEY_FACE_DETECTION_MODE));
+    }
+
     public void setCameraBound(Rect cameraBound) {
         mCameraBound = cameraBound;
+    }
+
+    public void setOriginalCameraBound(Rect originalCameraBound) {
+        mOriginalCameraBound = originalCameraBound;
     }
 
     public void setZoom(float zoom) {
@@ -105,10 +125,45 @@ public class Camera2FaceView extends FaceView {
         }
     }
 
+    private boolean isFDRectOutOfBound(Rect faceRect) {
+        return mCameraBound.left > faceRect.left || mCameraBound.top > faceRect.top ||
+                faceRect.right > mCameraBound.right || faceRect.bottom > mCameraBound.bottom;
+    }
+
+    private boolean checkForPiP = false;
+    private int mUncroppedWidthPiP =0;
+    private int mUncroppedHeightPiP =0;
+    private int orientationPiP =0;
+    private int offsetXPiP =0;
+    private int offsetYPiP =0;
+    public void setParamsForPiP(boolean checkPiP,
+                                int uncroppedWidth,
+                                int uncroppedHeight,
+                                int orientation,
+                                int offsetX,
+                                int offsetY){
+        checkForPiP = checkPiP;
+        mUncroppedWidthPiP = uncroppedWidth;
+        mUncroppedHeightPiP =  uncroppedHeight;
+        orientationPiP = orientation;
+        offsetXPiP = offsetX;
+        offsetYPiP = offsetY;
+    }
+
+    @Override
+    public boolean faceExists() {
+        return (mFaces != null && mFaces.length > 0);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         if (!mBlocked && (mFaces != null) && (mFaces.length > 0) && mCameraBound != null) {
             int rw, rh;
+            if(checkForPiP){
+                mUncroppedWidth = mUncroppedWidthPiP;
+                mUncroppedHeight = mUncroppedHeightPiP;
+                mDisplayOrientation = orientationPiP;
+            }
             rw = mUncroppedWidth;
             rh = mUncroppedHeight;
             if (((rh > rw) && ((mDisplayOrientation == 0) || (mDisplayOrientation == 180)))
@@ -116,6 +171,13 @@ public class Camera2FaceView extends FaceView {
                 int temp = rw;
                 rw = rh;
                 rh = temp;
+            }
+            if (rw * mCameraBound.width() != mCameraBound.height() * rh) {
+                if (rw == rh || (rh * 288 == rw * 352)) {
+                    rh = rw * mCameraBound.width() / mCameraBound.height();
+                } else {
+                    rw = rh * mCameraBound.height() / mCameraBound.width();
+                }
             }
             CameraUtil.prepareMatrix(mMatrix, mMirror, mDisplayOrientation, rw, rh);
 
@@ -131,8 +193,13 @@ public class Camera2FaceView extends FaceView {
             bsgcTranslateMatrix.postScale(2000f / mCameraBound.width(),
                     2000f / mCameraBound.height());
 
-            int dx = (getWidth() - rw) / 2;
-            int dy = (getHeight() - rh) / 2;
+            int dx = (getWidth() - mUncroppedWidth) / 2;
+            dx -= (rw - mUncroppedWidth) / 2;
+            int dy = (getHeight() - mUncroppedHeight) / 2;
+            dy -= (rh - mUncroppedHeight) / 2;
+
+            Matrix pointTranslateMatrix = new Matrix();
+            pointTranslateMatrix.postTranslate(dx,dy);
 
             // Focus indicator is directional. Rotate the matrix and the canvas
             // so it looks correctly in all orientations.
@@ -140,32 +207,55 @@ public class Camera2FaceView extends FaceView {
             mMatrix.postRotate(mOrientation); // postRotate is clockwise
             canvas.rotate(-mOrientation); // rotate is counter-clockwise (for canvas)
 
-            float rectWidth;
-            float rectHeight;
-            float diameter;
             int extendFaceSize = 0;
             extendFaceSize = mExFaces == null? 0 : mExFaces.length;
+
+            if (mFacialContourEnable || mFacePointsEnable) {
+                if (extendFaceSize != 0 && mExFaces[0] != null) {
+                    int[] data = null;
+                    if (mFacialContourEnable) {
+                        data = mExFaces[0].getContour();
+                    } else if (mFacePointsEnable) {
+                        data = mExFaces[0].getLandMarks();
+                    }
+                    if (data != null && data.length != 0){
+                        float[] points = new float[data.length];
+                        for (int i = 0; i < data.length; i++) {
+                            points[i] = (float)data[i];
+                        }
+                        bsgcTranslateMatrix.mapPoints(points);
+                        mMatrix.mapPoints(points);
+                        pointTranslateMatrix.mapPoints(points);
+                        canvas.drawPoints(points,mPointPaint);
+                    }
+                }
+            }
+
             for (int i = 0; i < mFaces.length; i++) {
                 if (mFaces[i].getScore() < 50) continue;
                 Rect faceBound = mFaces[i].getBounds();
-                faceBound.offset(-mCameraBound.left, -mCameraBound.top);
+                faceBound.offset(-mOriginalCameraBound.left, -mOriginalCameraBound.top);
+                if (isFDRectOutOfBound(faceBound)) continue;
                 mRect.set(faceBound);
+                if (mZoom != 1.0f) {
+                    mRect.left = mRect.left - mCameraBound.left;
+                    mRect.right = mRect.right - mCameraBound.left;
+                    mRect.top = mRect.top - mCameraBound.top;
+                    mRect.bottom = mRect.bottom - mCameraBound.top;
+                }
                 translateMatrix.mapRect(mRect);
                 if (LOGV) CameraUtil.dumpRect(mRect, "Original rect");
                 mMatrix.mapRect(mRect);
                 if (LOGV) CameraUtil.dumpRect(mRect, "Transformed rect");
                 mPaint.setColor(mColor);
                 mRect.offset(dx, dy);
+                canvas.drawRect(mRect, mPaint);
 
-                rectHeight = mRect.bottom-mRect.top;
-                rectWidth = mRect.right - mRect.left;
-                diameter = rectHeight > rectWidth ? rectWidth : rectHeight;
-
-                canvas.drawCircle(mRect.centerX(), mRect.centerY(), diameter/2, mPaint);
-
-                if (i < extendFaceSize && mExFaces[i] != null) {
+                if (mBsgcEnable && i < extendFaceSize &&
+                        mExFaces[i] != null) {
                     ExtendedFace exFace = mExFaces[i];
                     Face face = mFaces[i];
+
                     float[] point = new float[4];
                     int delta_x = faceBound.width() / 12;
                     int delta_y = faceBound.height() / 12;
@@ -217,8 +307,10 @@ public class Camera2FaceView extends FaceView {
                         }
                     }
 
-                    if (exFace.getLeftrightGaze() != 0
-                            || exFace.getTopbottomGaze() != 0 ) {
+                    if ((exFace.getLeftrightGaze() != 0
+                            || exFace.getTopbottomGaze() != 0)
+                            && face.getLeftEyePosition() != null
+                            && face.getRightEyePosition() != null) {
 
                         double length =
                                 Math.sqrt((face.getLeftEyePosition().x - face.getRightEyePosition().x) *
@@ -289,9 +381,9 @@ public class Camera2FaceView extends FaceView {
                         Log.e(TAG, "smile: " + exFace.getSmileDegree() + "," +
                                 exFace.getSmileConfidence());
                         if (exFace.getSmileDegree() < smile_threashold_no_smile) {
-                            point[0] = face.getMouthPosition().x + dx - delta_x;
+                            point[0] = face.getMouthPosition().x - delta_x;
                             point[1] = face.getMouthPosition().y;
-                            point[2] = face.getMouthPosition().x + dx + delta_x;
+                            point[2] = face.getMouthPosition().x + delta_x;
                             point[3] = face.getMouthPosition().y;
                             Matrix faceMatrix = new Matrix();
                             faceMatrix.preRotate(exFace.getRollDirection(),
@@ -313,6 +405,11 @@ public class Camera2FaceView extends FaceView {
                             canvas.drawArc(mRect, rotation_mouth,
                                     180, true, mPaint);
                         } else {
+                            float[] mouthPoint = new float[2];
+                            mouthPoint[0] = face.getMouthPosition().x;
+                            mouthPoint[1] = face.getMouthPosition().y;
+                            bsgcTranslateMatrix.mapPoints(mouthPoint);
+                            mMatrix.mapPoints(mouthPoint);
                             mRect.set(face.getMouthPosition().x-delta_x,
                                     face.getMouthPosition().y-delta_y, face.getMouthPosition().x+delta_x,
                                     face.getMouthPosition().y+delta_y);
@@ -333,7 +430,6 @@ public class Camera2FaceView extends FaceView {
     public void clear() {
         // Face indicator is displayed during preview. Do not clear the
         // drawable.
-        mColor = mFocusingColor;
         mFaces = null;
         mExFaces = null;
         invalidate();

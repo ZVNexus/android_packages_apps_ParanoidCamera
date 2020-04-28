@@ -60,9 +60,8 @@ public class FocusOverlayManager {
     private static final String TAG = "CAM_FocusManager";
 
     private static final int RESET_TOUCH_FOCUS = 0;
-    private static final int RESET_FACE_DETECTION = 1;
     private static final int RESET_TOUCH_FOCUS_DELAY = 3000;
-    private static final int RESET_FACE_DETECTION_DELAY = 3000;
+
     private int mState = STATE_IDLE;
     public static final int STATE_IDLE = 0; // Focus is not active.
     public static final int STATE_FOCUSING = 1; // Focus is in progress.
@@ -127,10 +126,6 @@ public class FocusOverlayManager {
             switch (msg.what) {
                 case RESET_TOUCH_FOCUS: {
                     cancelAutoFocus();
-                    mListener.startFaceDetection();
-                    break;
-                }
-                case RESET_FACE_DETECTION: {
                     mListener.startFaceDetection();
                     break;
                 }
@@ -244,7 +239,7 @@ public class FocusOverlayManager {
 
         if (needAutoFocusCall()) {
             // User releases half-pressed focus key.
-            if (mState == STATE_SUCCESS
+            if (mState == STATE_FOCUSING || mState == STATE_SUCCESS
                     || mState == STATE_FAIL) {
                 cancelAutoFocus();
             }
@@ -340,8 +335,6 @@ public class FocusOverlayManager {
             mUI.onFocusSucceeded(true);
             mIsAFRunning = false;
         }
-
-        mHandler.sendEmptyMessageDelayed(RESET_FACE_DETECTION, RESET_FACE_DETECTION_DELAY);
         mPreviousMoving = moving;
     }
 

@@ -69,7 +69,6 @@ import com.android.camera.ui.RotateTextToast;
 import com.android.camera.util.AccessibilityUtils;
 import com.android.camera.util.ApiHelper;
 import com.android.camera.util.CameraUtil;
-import com.android.camera.util.PersistUtil;
 import com.android.camera.util.UsageStatistics;
 import com.android.camera.PhotoModule;
 
@@ -108,7 +107,7 @@ public class VideoModule implements CameraModule,
 
     private static final int SCREEN_DELAY = 2 * 60 * 1000;
 
-    private static final long SDCARD_SIZE_LIMIT = 4000 * 1024 * 1024;
+    private static final int SDCARD_SIZE_LIMIT = 4000 * 1024 * 1024;
 
     private static final long SHUTTER_BUTTON_TIMEOUT = 0L; // 0ms
 
@@ -2232,9 +2231,9 @@ public class VideoModule implements CameraModule,
         //value: 1 - FLIP_MODE_H
         //value: 2 - FLIP_MODE_V
         //value: 3 - FLIP_MODE_VH
-        int preview_flip_value = PersistUtil.getPreviewFlip();
-        int video_flip_value = PersistUtil.getVideoFlip();
-        int picture_flip_value = PersistUtil.getPictureFlip();
+        int preview_flip_value = SystemProperties.getInt("debug.camera.preview.flip", 0);
+        int video_flip_value = SystemProperties.getInt("debug.camera.video.flip", 0);
+        int picture_flip_value = SystemProperties.getInt("debug.camera.picture.flip", 0);
         int rotation = CameraUtil.getJpegRotation(mCameraId, mOrientation);
         mParameters.setRotation(rotation);
         if (rotation == 90 || rotation == 270) {
@@ -2394,8 +2393,9 @@ public class VideoModule implements CameraModule,
         mUnsupportedHFRVideoCodec = false;
         mUnsupportedHSRVideoSize = false;
         // To set preview format as YV12 , run command
-        // "adb shell setprop "debug.camera.yv12 true
-        if( PersistUtil.isYv12FormatEnable() ) {
+        // "adb shell setprop "debug.camera.yv12" true"
+        String yv12formatset = SystemProperties.get("debug.camera.yv12");
+        if(yv12formatset.equals("true")) {
             Log.v(TAG, "preview format set to YV12");
             mParameters.setPreviewFormat (ImageFormat.YV12);
         }
@@ -2941,7 +2941,6 @@ public class VideoModule implements CameraModule,
 
         //Display timelapse msg depending upon selection in front/back camera.
         mUI.showTimeLapseUI(mCaptureTimeLapse);
-
     }
 
     // Preview texture has been copied. Now camera can be released and the
@@ -3013,7 +3012,7 @@ public class VideoModule implements CameraModule,
             return;
         }
         forceFlashOffIfSupported(forceOff);
-        mCameraDevice.setParameters(mParameters);
+        mCameraDevice.setParameters(mCameraDevice.getParameters());
         mUI.updateOnScreenIndicators(mParameters, mPreferences);
     }
 

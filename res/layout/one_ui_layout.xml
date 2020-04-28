@@ -19,7 +19,9 @@
 <com.android.camera.ui.OneUICameraControls xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/camera_controls"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
 
     <com.android.camera.ui.ProMode
         android:id="@+id/promode_slider"
@@ -38,6 +40,15 @@
         android:src="@drawable/ic_unmuted_button"
         android:visibility="gone" />
 
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_gravity="center_horizontal|center_vertical"
+        android:visibility="gone"
+        android:indeterminate="true"
+        android:indeterminateTint="#f44242" />
+
     <com.android.camera.ShutterButton
         android:id="@+id/shutter_button"
         android:layout_width="@dimen/one_ui_bottom_large"
@@ -49,13 +60,23 @@
         android:src="@drawable/photo_capture" />
 
     <com.android.camera.ui.RotateImageView
+        android:id="@+id/activity_button"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:clickable="true"
+        android:layout_marginLeft="5dip"
+        android:layout_marginTop="440dip"
+        android:src="@drawable/PIP"/>
+
+    <com.android.camera.ui.RotateImageView
         android:id="@+id/video_button"
-        android:layout_width="@dimen/one_ui_bottom_small"
-        android:layout_height="@dimen/one_ui_bottom_small"
+        android:layout_width="@dimen/one_ui_bottom_large"
+        android:layout_height="@dimen/one_ui_bottom_large"
         android:clickable="true"
         android:contentDescription="@string/accessibility_shutter_button"
         android:focusable="true"
         android:scaleType="fitCenter"
+        android:visibility="gone"
         android:src="@drawable/video_capture" />
 
     <com.android.camera.PauseButton
@@ -78,15 +99,15 @@
         android:visibility="gone"
         android:src="@drawable/ic_menu_cancel_holo_light" />
 
-    <com.android.camera.PauseButton
-        android:id="@+id/video_pause"
+    <com.android.camera.ui.RotateImageView
+        android:id="@+id/front_back_switcher"
         android:layout_width="@dimen/one_ui_bottom_small"
         android:layout_height="@dimen/one_ui_bottom_small"
         android:focusable="true"
         android:clickable="true"
         android:scaleType="fitCenter"
         android:visibility="gone"
-        android:src="@drawable/btn_pause_recording"/>
+        android:src="@drawable/front_back_camera" />
 
     <com.android.camera.ui.RotateImageView
         android:id="@+id/preview_thumb"
@@ -110,11 +131,6 @@
         android:visibility="gone"/>
 
     <com.android.camera.ui.RotateImageView
-        android:id="@+id/front_back_switcher"
-        style="@style/OneUIMenuButton"
-        android:src="@drawable/front_back_camera" />
-
-    <com.android.camera.ui.RotateImageView
         android:id="@+id/hdr_switcher"
         style="@style/OneUIMenuButton" />
 
@@ -130,6 +146,10 @@
 
     <com.android.camera.ui.RotateImageView
         android:id="@+id/ts_makeup_switcher"
+        style="@style/OneUIMenuButton" />
+
+    <com.android.camera.ui.RotateImageView
+        android:id="@+id/settings"
         style="@style/OneUIMenuButton" />
 
     <LinearLayout
@@ -158,11 +178,48 @@
 
     <include layout="@layout/pro_mode_layout" />
 
-    <ImageView
-        android:id="@+id/promode_close_button"
-        android:layout_height="20dp"
-        android:layout_width="20dp"
-        android:src="@drawable/icon_x" />
+    <SeekBar
+        android:layout_width="320dp"
+        android:layout_height="40dp"
+        android:maxHeight="3dip"
+        android:minHeight="1dip"
+        android:visibility="gone"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="90dp"
+        android:progressDrawable="@drawable/beautify_progressbar_style"
+        android:thumb="@drawable/ic_beautify_oval"
+        android:id="@+id/deepportrait_seekbar"/>
+
+    <LinearLayout
+        android:id="@+id/zoom_linearlayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="140dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/zoom_value_text"
+            android:layout_width="30dip"
+            android:layout_height="30dip"
+            android:textSize="14dip"
+            android:layout_gravity="center_horizontal"
+            android:layout_above="@+id/zoom_seekbar"
+            android:textColor="@android:color/white">
+        </TextView>
+
+        <SeekBar
+            android:layout_width="320dp"
+            android:layout_height="30dp"
+            android:maxHeight="3dip"
+            android:minHeight="1dip"
+            android:visibility="gone"
+            android:layout_gravity="center_horizontal"
+            android:progressDrawable="@drawable/beautify_progressbar_style"
+            android:thumb="@drawable/ic_beautify_oval"
+            android:id="@id/zoom_seekbar"/>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -223,15 +280,21 @@
         </RelativeLayout>
     </LinearLayout>
 
-    <SeekBar
-        android:layout_width="220dp"
+    <FrameLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxHeight="3dip"
-        android:minHeight="1dip"
-        android:layout_gravity="center_horizontal|bottom"
-        android:layout_marginBottom="90dp"
-        android:progressDrawable="@drawable/beautify_progressbar_style"
-        android:thumb="@drawable/ic_beautify_oval"
-        android:id="@+id/bokeh_seekbar"
-        android:visibility="invisible"/>
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="100dp"
+        android:background="@android:color/transparent">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/mode_select_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|bottom"
+            android:layout_centerHorizontal="true"
+            android:scrollbars="none" />
+
+    </FrameLayout>
+
 </com.android.camera.ui.OneUICameraControls>

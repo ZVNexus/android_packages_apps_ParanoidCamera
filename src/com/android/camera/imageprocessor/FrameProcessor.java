@@ -46,8 +46,12 @@ import android.view.Surface;
 import android.widget.Toast;
 
 import com.android.camera.CaptureModule;
+import com.android.camera.PhotoModule;
 import com.android.camera.SettingsManager;
+import com.android.camera.deepportrait.DPImage;
+import com.android.camera.deepportrait.GLCameraPreview;
 import com.android.camera.imageprocessor.filter.BeautificationFilter;
+import com.android.camera.imageprocessor.filter.DeepPortraitFilter;
 import com.android.camera.imageprocessor.filter.ImageFilter;
 import com.android.camera.imageprocessor.filter.TrackingFocusFrameListener;
 import com.android.camera.ui.RotateTextToast;
@@ -59,7 +63,7 @@ import java.util.concurrent.Semaphore;
 import org.codeaurora.snapcam.R;
 
 public class FrameProcessor {
-
+    private static final String TAG = "FrameProcessor";
     private ImageReader mInputImageReader;
     private Allocation mInputAllocation;
     private Allocation mProcessAllocation;
@@ -77,8 +81,6 @@ public class FrameProcessor {
     private ListeningTask mListeningTask;
     private RenderScript mRs;
     private Activity mActivity;
-    ScriptC_YuvToRgb mRsYuvToRGB;
-    ScriptC_rotator mRsRotator;
     private Size mSize;
     private Object mAllocationLock = new Object();
     private boolean mIsAllocationEverUsed;
@@ -90,8 +92,12 @@ public class FrameProcessor {
     public static final int FILTER_NONE = 0;
     public static final int FILTER_MAKEUP = 1;
     public static final int LISTENER_TRACKING_FOCUS = 2;
+    public static final int FILTER_DEEP_PORTRAIT = 3;
     private CaptureModule mModule;
     private boolean mIsVideoOn = false;
+    private boolean mIsFirstIn = true;
+    private boolean mIsDeepPortrait = false;
+    private DeepPortraitFilter mDeepPortraitFilter = null;
 
     public FrameProcessor(Activity activity, CaptureModule module) {
         mActivity = activity;
@@ -100,15 +106,13 @@ public class FrameProcessor {
         mFinalFilters = new ArrayList<ImageFilter>();
 
         mRs = RenderScript.create(mActivity);
-        mRsYuvToRGB = new ScriptC_YuvToRgb(mRs);
-        mRsRotator = new ScriptC_rotator(mRs);
     }
 
     private void init(Size previewDim) {
         mIsActive = true;
         mSize = previewDim;
         synchronized (mAllocationLock) {
-            mInputImageReader = ImageReader.newInstance(mSize.getWidth(), mSize.getHeight(), ImageFormat.YUV_420_888, 8);
+            mInputImageReader = ImageReader.newInstance(mSize.getWidth(), mSize.getHeight(), ImageFormat.YUV_420_888, 12);
 
             Type.Builder rgbTypeBuilder = new Type.Builder(mRs, Element.RGBA_8888(mRs));
             rgbTypeBuilder.setX(mSize.getHeight());
@@ -150,11 +154,6 @@ public class FrameProcessor {
         Type.Builder nv21TypeBuilder = new Type.Builder(mRs, Element.U8(mRs));
         nv21TypeBuilder.setX(width * height * 3 / 2);
         mProcessAllocation = Allocation.createTyped(mRs, nv21TypeBuilder.create(), Allocation.USAGE_SCRIPT);
-        mRsRotator.set_gIn(mInputAllocation);
-        mRsRotator.set_gOut(mProcessAllocation);
-        mRsRotator.set_width(width);
-        mRsRotator.set_height(height);
-        mRsRotator.set_pad(stridePad);
         int degree = 90;
         if(mModule.getMainCameraCharacteristics() != null) {
             degree = mModule.getMainCameraCharacteristics().
@@ -163,10 +162,6 @@ public class FrameProcessor {
                 degree = Math.abs(degree - 90);
             }
         }
-        mRsRotator.set_degree(degree);
-        mRsYuvToRGB.set_gIn(mProcessAllocation);
-        mRsYuvToRGB.set_width(height);
-        mRsYuvToRGB.set_height(width);
     }
 
     public ArrayList<ImageFilter> getFrameFilters() {
@@ -190,12 +185,29 @@ public class FrameProcessor {
 
     public void onOpen(ArrayList<Integer> filterIds, final Size size) {
         cleanFilterSet();
+        boolean hasDeepportraitFilter = false;
         if (filterIds != null) {
             for (Integer i : filterIds) {
                 addFilter(i.intValue());
+                if (i == FILTER_DEEP_PORTRAIT) {
+                    hasDeepportraitFilter = true;
+                }
             }
         }
-        if(isFrameFilterEnabled() || isFrameListnerEnabled()) {
+
+        mIsDeepPortrait = hasDeepportraitFilter;
+        if (mIsDeepPortrait && mPreviewFilters.size() != 0) {
+            mDeepPortraitFilter =
+                    (DeepPortraitFilter)mPreviewFilters.get(0);
+            mDeepPortraitFilter.init(size.getWidth(),size.getHeight(),0,0);
+            if (!mDeepPortraitFilter.getDPInitialized())
+                Toast.makeText(mActivity, "Deepportrait init failed",
+                    Toast.LENGTH_LONG).show();
+        } else {
+            mDeepPortraitFilter = null;
+        }
+
+        if(isFrameFilterEnabled() || isFrameListnerEnabled() || mIsDeepPortrait) {
             init(size);
         }
     }
@@ -206,6 +218,8 @@ public class FrameProcessor {
             filter = new BeautificationFilter(mModule);
         } else if (filterId == LISTENER_TRACKING_FOCUS) {
             filter = new TrackingFocusFrameListener(mModule);
+        } else if (filterId == FILTER_DEEP_PORTRAIT) {
+            filter = new DeepPortraitFilter(mModule,mModule.getCamGLRender());
         }
 
         if (filter != null && filter.isSupported()) {
@@ -292,6 +306,10 @@ public class FrameProcessor {
 
     public List<Surface> getInputSurfaces() {
         List<Surface> surfaces = new ArrayList<Surface>();
+        if (mIsDeepPortrait) {
+            surfaces.add(getReaderSurface());
+            return surfaces;
+        }
         if (mPreviewFilters.size() == 0 && mFinalFilters.size() == 0) {
             surfaces.add(mSurfaceAsItIs);
             if (mIsVideoOn) {
@@ -326,7 +344,11 @@ public class FrameProcessor {
     public void setOutputSurface(Surface surface) {
         mSurfaceAsItIs = surface;
         if (mFinalFilters.size() != 0) {
-            mOutputAllocation.setSurface(surface);
+            if (surface != null && surface.isValid()) {
+                mOutputAllocation.setSurface(surface);
+            } else {
+                Log.d(TAG,"OutputSurface is not valid");
+            }
         }
     }
 
@@ -343,6 +365,7 @@ public class FrameProcessor {
         }
         mVideoSurfaceAsItIs = surface;
         mIsVideoOn = true;
+        mIsFirstIn = true;
         if (mFinalFilters.size() != 0) {
             synchronized (mAllocationLock) {
                 if (mVideoOutputAllocation == null) {
@@ -352,7 +375,11 @@ public class FrameProcessor {
                     mVideoOutputAllocation = Allocation.createTyped(mRs, rgbTypeBuilder.create(),
                             Allocation.USAGE_SCRIPT | Allocation.USAGE_IO_OUTPUT);
                 }
-                mVideoOutputAllocation.setSurface(surface);
+                if (surface != null && surface.isValid()) {
+                    mVideoOutputAllocation.setSurface(surface);
+                } else {
+                    Log.d(TAG,"Video outputSurface is not valid");
+                }
             }
         }
     }
@@ -382,6 +409,20 @@ public class FrameProcessor {
                         image.close();
                         return;
                     }
+                    if (mIsDeepPortrait) {
+                        //render to GLSurfaceView directly
+                        GLCameraPreview preview = mModule.getGLCameraPreview();
+                        if (mDeepPortraitFilter != null && mDeepPortraitFilter.getDPInitialized()
+                                && preview != null) {
+                            DPImage DpImage = new DPImage(image,0);
+                            mDeepPortraitFilter.addImage(null,null,1,DpImage);
+                            preview.getRendererInstance().sendFrame(DpImage);
+                            preview.requestRender();
+                        } else {
+                            image.close();
+                        }
+                        return;
+                    }
                     mIsAllocationEverUsed = true;
                     ByteBuffer bY = image.getPlanes()[0].getBuffer();
                     ByteBuffer bVU = image.getPlanes()[2].getBuffer();
@@ -403,13 +444,17 @@ public class FrameProcessor {
                             filter.init(mSize.getWidth(), mSize.getHeight(), stride, stride);
                             if (filter instanceof BeautificationFilter) {
                                 filter.addImage(bY, bVU, 0, new Boolean(false));
-                            } else {
+                            } else{
                                 filter.addImage(bY, bVU, 0, new Boolean(true));
                             }
                             needToFeedSurface = true;
                         }
                         bY.rewind();
                         bVU.rewind();
+                    }
+                    if (mIsFirstIn && mIsVideoOn && isFrameListnerEnabled()) {
+                        mIsFirstIn = false;
+                        mModule.startMediaRecording();
                     }
                     //End processing yvu buf
                     if (needToFeedSurface) {
@@ -433,8 +478,6 @@ public class FrameProcessor {
                     createAllocation(stride, height, stride - width);
                 }
                 mInputAllocation.copyFrom(yvuBytes);
-                mRsRotator.forEach_rotate90andMerge(mInputAllocation);
-                mRsYuvToRGB.forEach_nv21ToRgb(mOutputAllocation);
                 mOutputAllocation.ioSend();
                 if (mVideoOutputAllocation != null) {
                     mVideoOutputAllocation.copyFrom(mOutputAllocation);

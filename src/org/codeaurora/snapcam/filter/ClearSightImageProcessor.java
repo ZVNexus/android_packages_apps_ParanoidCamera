@@ -1274,11 +1274,9 @@ public class ClearSightImageProcessor {
                     if(mCallback != null) mCallback.onClearSightFailure(null);
                 }
 
-                GDepth gDepth = GDepth.createGDepth(mDepthMap);
-
-                mMediaSaveService.addXmpImage(
+                mMediaSaveService.addClearsightImage(
                         clearSightBytes != null ? clearSightBytes : bayerBytes,
-                        mGImage, gDepth,title, date, null,
+                        mGImage, mDepthMap,title, date, null,
                         width, height, orientation, exif,
                         mMediaSavedListener,
                         mMediaSaveService.getContentResolver(), "jpeg");
@@ -1410,7 +1408,7 @@ public class ClearSightImageProcessor {
                     }
                     depthMap = new GDepth.DepthMap(width, height);
                     depthMap.roi = roiRect;
-                    depthMap.buffer = depthBuffer;
+                    depthMap.rawDepth = depthBuffer;
                 }else{
                     Log.e(TAG, "dualCameraGenerateDDM failure");
                 }
@@ -1539,14 +1537,11 @@ public class ClearSightImageProcessor {
         ByteBuffer vuBuffer = planes[2].getBuffer();
         int sizeY = yBuffer.capacity();
         int sizeVU = vuBuffer.capacity();
-        int stride = image.getPlanes()[0].getRowStride();
-        int height = image.getHeight();
-        byte[] data = new byte[stride * height*3/2];
+        byte[] data = new byte[sizeY + sizeVU];
         yBuffer.rewind();
         yBuffer.get(data, 0, sizeY);
         vuBuffer.rewind();
         vuBuffer.get(data, sizeY, sizeVU);
-
         int[] strides = new int[] { planes[0].getRowStride(),
                 planes[2].getRowStride() };
 

@@ -16,6 +16,7 @@
 
 package com.android.camera;
 
+import android.hardware.camera2.CameraAccessException;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.view.Display;
@@ -168,7 +169,7 @@ public class CameraActivity extends Activity
     private static final int SWITCH_SAVE_PATH = 2;
 
     /** Permission request code */
-    private static final int PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
+    private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
 
     /** Whether onResume should reset the view to the preview. */
     private boolean mResetToPreviewOnResume = true;
@@ -257,6 +258,7 @@ public class CameraActivity extends Activity
     private ImageView mThumbnail;
     private UpdateThumbnailTask mUpdateThumbnailTask;
     private CircularDrawable mThumbnailDrawable;
+    private Bitmap mThumbnailBitmap;
     // FilmStripView.setDataAdapter fires 2 onDataLoaded calls before any data is actually loaded
     // Keep track of data request here to avoid creating useless UpdateThumbnailTask.
     private boolean mDataRequested;
@@ -709,7 +711,7 @@ public class CameraActivity extends Activity
         return mDataAdapter;
     }
 
-    private String getPathFromUri(Uri uri) {
+    public String getPathFromUri(Uri uri) {
         String[] projection = {
                 MediaStore.Images.Media.DATA
         };
@@ -725,6 +727,22 @@ public class CameraActivity extends Activity
         return s;
     }
 
+    private int getOrientationFromUri(Uri uri) {
+        String[] projection = {
+                MediaStore.Images.Media.ORIENTATION
+        };
+        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
+        if (cursor == null)
+            return 0;
+        int orientation_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.ORIENTATION);
+        int ori = 0;
+        if (cursor.moveToFirst()) {
+            ori = cursor.getInt(orientation_index);
+        }
+        cursor.close();
+        return ori;
+    }
+
     public void updateThumbnail(final byte[] jpegData) {
         if (mUpdateThumbnailTask != null) mUpdateThumbnailTask.cancel(true);
         mUpdateThumbnailTask = new UpdateThumbnailTask(jpegData, true);
@@ -733,6 +751,9 @@ public class CameraActivity extends Activity
 
     public void updateThumbnail(final Bitmap bitmap) {
         if (bitmap == null) return;
+        if (mThumbnailBitmap != null)
+            mThumbnailBitmap.recycle();
+        mThumbnailBitmap = bitmap;
         mThumbnailDrawable = new CircularDrawable(bitmap);
         if (mThumbnail != null) {
             mThumbnail.setImageDrawable(mThumbnailDrawable);
@@ -789,6 +810,7 @@ public class CameraActivity extends Activity
     private class UpdateThumbnailTask extends AsyncTask<Void, Void, Bitmap> {
         private byte[] mJpegData;
         private boolean mCheckOrientation;
+        private int mOrientation = -1;
 
         public UpdateThumbnailTask(final byte[] jpegData, boolean checkOrientation) {
             mJpegData = jpegData;
@@ -797,8 +819,9 @@ public class CameraActivity extends Activity
 
         @Override
         protected Bitmap doInBackground(Void... params) {
-            if (mJpegData != null)
+            if (mJpegData != null) {
                 return decodeImageCenter(null);
+            }
 
             LocalDataAdapter adapter = getDataAdapter();
             ImageData img = adapter.getImageData(1);
@@ -809,8 +832,10 @@ public class CameraActivity extends Activity
             String path = getPathFromUri(uri);
             if (path == null) {
                 return null;
-            }
-            else {
+            } else {
+                if (path.endsWith(Storage.HEIF_POSTFIX)) {
+                    mOrientation = getOrientationFromUri(uri);
+                }
                 if (img.isPhoto()) {
                     return decodeImageCenter(path);
                 } else {
@@ -850,16 +875,20 @@ public class CameraActivity extends Activity
             // saves jpeg with orientation tag set.
             int orientation = 0;
             if (mCheckOrientation) {
-                ExifInterface exif = new ExifInterface();
-                try {
-                    if (mJpegData != null) {
-                        exif.readExif(mJpegData);
-                    } else {
-                        exif.readExif(path);
+                if (mOrientation != -1) {
+                    orientation = mOrientation;
+                } else {
+                    ExifInterface exif = new ExifInterface();
+                    try {
+                        if (mJpegData != null) {
+                            exif.readExif(mJpegData);
+                        } else {
+                            exif.readExif(path);
+                        }
+                        orientation = Exif.getOrientation(exif);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    orientation = Exif.getOrientation(exif);
-                } catch (IOException e) {
-                    // ignore
                 }
             }
 
@@ -901,9 +930,11 @@ public class CameraActivity extends Activity
             if (orientation != 0) {
                 Matrix matrix = new Matrix();
                 matrix.setRotate(orientation);
-                bitmap = Bitmap.createBitmap(bitmap, 0, 0,
+                bitmap =  Bitmap.createBitmap(bitmap, 0, 0,
                         bitmap.getWidth(), bitmap.getHeight(), matrix, false);
             }
+            if (decoder != null)
+                decoder.recycle();
             return bitmap;
         }
     }
@@ -1297,7 +1328,7 @@ public class CameraActivity extends Activity
     }
 
     private void unbindMediaSaveService() {
-        if (mConnection != null) {
+        if (mConnection != null && mMediaSaveService != null) {
             unbindService(mConnection);
         }
     }
@@ -1457,6 +1488,13 @@ public class CameraActivity extends Activity
     @Override
     public void onCreate(Bundle state) {
         super.onCreate(state);
+        try {
+            //Print version info here
+            String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            Log.d(TAG, "snapdragoncamera_version: " + versionName);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
         // Check if this is in the secure camera mode.
         Intent intent = getIntent();
         String action = intent.getAction();
@@ -1467,7 +1505,6 @@ public class CameraActivity extends Activity
         } else {
             mSecureCamera = intent.getBooleanExtra(SECURE_CAMERA_EXTRA, false);
         }
-
         if (mSecureCamera) {
             // Change the window flags so that secure camera can show when locked
             Window win = getWindow();
@@ -1535,6 +1572,7 @@ public class CameraActivity extends Activity
         }
 
         boolean cam2on = PersistUtil.getCamera2Mode();
+        CameraHolder.setCamera2Mode(this, cam2on);
         if (cam2on && (moduleIndex == ModuleSwitcher.PHOTO_MODULE_INDEX ||
                 moduleIndex == ModuleSwitcher.VIDEO_MODULE_INDEX))
             moduleIndex = ModuleSwitcher.CAPTURE_MODULE_INDEX;
@@ -1780,6 +1818,12 @@ public class CameraActivity extends Activity
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+    }
+
+    @Override
     public void onResume() {
         if (mSecureCamera && !hasCriticalPermissions()) {
             super.onResume();
@@ -1791,6 +1835,11 @@ public class CameraActivity extends Activity
             Log.v(TAG, "onResume: Missing critical permissions.");
             finish();
             return;
+        }
+        if (!cameraConnected()) {
+            super.onResume();
+            Log.v(TAG, "onResume: No camera devices connected.");
+            finish();
         }
         SettingsManager settingsManager = SettingsManager.getInstance();
         if (settingsManager == null) {
@@ -1831,14 +1880,17 @@ public class CameraActivity extends Activity
         }
         mLocalImagesObserver.setActivityPaused(false);
         mLocalVideosObserver.setActivityPaused(false);
+    }
 
-        //This is a temporal solution to share LED resource
-        //as Android doesn’t have any default intent to share the state.
-        // if the led flash light is open, turn it off
-        Log.d(TAG, "send the turn off Flashlight broadcast");
-        Intent intent = new Intent("org.codeaurora.snapcam.action.CLOSE_FLASHLIGHT");
-        intent.putExtra("camera_led", true);
-        sendBroadcast(intent);
+    private boolean cameraConnected() {
+        android.hardware.camera2.CameraManager manager =
+        (android.hardware.camera2.CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            return manager.getCameraIdList().length > 0;
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Override
@@ -1987,6 +2039,9 @@ public class CameraActivity extends Activity
             message = getString(R.string.spaceIsLow_content);
         }
 
+        if (isFinishing()) {
+            return;
+        }
         if (message != null) {
             if (mStorageHint == null) {
                 mStorageHint = OnScreenHint.makeText(this, message);
@@ -2024,13 +2079,13 @@ public class CameraActivity extends Activity
     }
 
     public void requestLocationPermission() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) {
             Log.v(TAG, "Request Location permission");
             mCurrentModule.waitingLocationPermissionResult(true);
             requestPermissions(
-                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
         }
     }
 
@@ -2038,7 +2093,7 @@ public class CameraActivity extends Activity
     public void onRequestPermissionsResult(int requestCode,
             String permissions[], int[] grantResults) {
         switch (requestCode) {
-            case PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION: {
+            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
                 // If request is cancelled, the result arrays are empty.
                 mCurrentModule.waitingLocationPermissionResult(false);
                 if (grantResults.length > 0

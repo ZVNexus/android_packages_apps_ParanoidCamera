@@ -724,7 +724,6 @@ public class VideoMenu extends MenuController
     }
 
     private void overrideMenuForCDSMode() {
-        if (mPreferenceGroup == null) return;
 
         ListPreference pref_tnr = mPreferenceGroup.
                 findPreference(CameraSettings.KEY_VIDEO_TNR_MODE);

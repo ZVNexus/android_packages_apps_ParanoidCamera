@@ -18,6 +18,7 @@ package com.android.camera;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -160,6 +161,15 @@ public class ListPreference extends CameraPreference {
         persistStringValue(value);
     }
 
+    public void setFromMultiValues(Set<String> set) {
+        String value = "";
+        for (String str : set) {
+            value = value + str +";";
+        }
+        mValue = value;
+        persistStringValue(value);
+    }
+
     public void setValueIndex(int index) {
         setValue(mEntryValues[index].toString());
     }
@@ -167,6 +177,13 @@ public class ListPreference extends CameraPreference {
     public int findIndexOfValue(String value) {
         for (int i = 0, n = mEntryValues.length; i < n; ++i) {
             if (CameraUtil.equals(mEntryValues[i], value)) return i;
+        }
+
+        String defaultValue = findSupportedDefaultValue();
+        if (defaultValue != null) {
+            for (int i = 0, n = mEntryValues.length; i < n; ++i) {
+                if (CameraUtil.equals(mEntryValues[i], defaultValue)) return i;
+            }
         }
         return -1;
     }

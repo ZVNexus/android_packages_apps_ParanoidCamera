@@ -34,16 +34,18 @@
 # 2.0.001 - Factory ROM and 0-day OTA 4.4 (KK)
 # 2.0.002 - 4.4 MR1 system image
 
-# Specify the following manually.  Note that base_version_minor must be exactly 1 digit and
-# base_version_build must be exactly 3 digits.
+# Specify the following manually.
+# base_version_major is reserved.
+# base_version_minor is 2 digits and auto-increment for developing FR.
+# base_version_build is 3 digits and auto-increment for fixing CR.
 base_version_major := 2
-base_version_minor := 0
-base_version_build := 002
+base_version_minor := 02
+base_version_build := 062
 
 #####################################################
 #####################################################
 # Collect automatic version code parameters
-ifneq "" "$(filter eng.%,$(BUILD_NUMBER))"
+ifneq "" "$(filter eng.%,$(BUILD_NUMBER_FROM_FILE))"
   # This is an eng build
   base_version_buildtype := 0
 else
@@ -82,8 +84,8 @@ version_code_package := $(base_version_major)$(base_version_minor)$(base_version
 # - For eng build (t=0):     M.m.bbb eng.$(USER)-hh
 # - For build server (t=1):  M.m.bbb (nnnnnn-hh)
 #       where nnnnnn is the build number from the build server (no zero-padding)
-# On eng builds, the BUILD_NUMBER has the user and timestamp inline
-ifneq "" "$(filter eng.%,$(BUILD_NUMBER))"
+# On eng builds, the BUILD_NUMBER_FROM_FILE has the user and timestamp inline
+ifneq "" "$(filter eng.%,$(BUILD_NUMBER_FROM_FILE))"
   git_hash := $(shell git --git-dir $(LOCAL_PATH)/.git log -n 1 --pretty=format:%h)
   date_string := $$(date +%m%d%y_%H%M%S)
   version_name_package := $(base_version_major).$(base_version_minor).$(base_version_build) (eng.$(USER).$(git_hash).$(date_string)-$(base_version_arch)$(base_version_density))

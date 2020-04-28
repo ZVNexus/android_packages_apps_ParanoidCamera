@@ -29,7 +29,6 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
-import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera.CameraInfo;
@@ -53,7 +52,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.MessageQueue;
 import android.os.SystemClock;
-import android.preference.Preference;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
@@ -91,9 +89,6 @@ import com.android.camera.util.UsageStatistics;
 import org.codeaurora.snapcam.R;
 import org.codeaurora.snapcam.wrapper.ParametersWrapper;
 import org.codeaurora.snapcam.wrapper.CameraInfoWrapper;
-import org.codeaurora.snapcam.filter.GDepth;
-import org.codeaurora.snapcam.filter.GImage;
-
 import android.widget.EditText;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -164,16 +159,6 @@ public class PhotoModule
     private static final int SET_PHOTO_UI_PARAMS = 11;
     private static final int SWITCH_TO_GCAM_MODULE = 12;
     private static final int ON_PREVIEW_STARTED = 13;
-    private static final int INSTANT_CAPTURE = 14;
-
-    private static final int NO_DEPTH_EFFECT = 0;
-    private static final int DEPTH_EFFECT_SUCCESS = 1;
-    private static final int TOO_NEAR = 2;
-    private static final int TOO_FAR = 3;
-    private static final int LOW_LIGHT = 4;
-    private static final int SUBJECT_NOT_FOUND = 5;
-    private static final int TOUCH_TO_FOCUS = 6;
-
 
     // The subset of parameters we need to update in setCameraParameters().
     private static final int UPDATE_PARAM_INITIALIZE = 1;
@@ -239,9 +224,6 @@ public class PhotoModule
 
     private static final boolean PERSIST_SKIP_MEM_CHECK = PersistUtil.isSkipMemoryCheckEnabled();
 
-    private static final String PERSISI_BOKEH_DEBUG = "persist.camera.bokeh.debug";
-    private static final boolean PERSIST_BOKEH_DEBUG_CHECK =
-            android.os.SystemProperties.getBoolean(PERSISI_BOKEH_DEBUG, false);
     private static final int MINIMUM_BRIGHTNESS = 0;
     private static final int MAXIMUM_BRIGHTNESS = 6;
     private static final int DEFAULT_BRIGHTNESS = 3;
@@ -250,6 +232,7 @@ public class PhotoModule
     private ProgressBar brightnessProgressBar;
     // Constant from android.hardware.Camera.Parameters
     private static final String KEY_PICTURE_FORMAT = "picture-format";
+    private SeekBar mBlurDegreeProgressBar;
     private static final String KEY_QC_RAW_PICUTRE_SIZE = "raw-size";
     public static final String PIXEL_FORMAT_JPEG = "jpeg";
 
@@ -282,10 +265,12 @@ public class PhotoModule
     private byte[] mLastJpegData;
     private int mLastJpegOrientation = 0;
 
-    private boolean mIsBokehMode = false;
-    private TextView mBokehTipText;
-    private boolean mDepthSuccess = false;
-    private boolean mSaveBokehXmp = false;
+    private Runnable mDoSnapRunnable = new Runnable() {
+        @Override
+        public void run() {
+            onShutterButtonClick();
+        }
+    };
 
     private class OpenCameraThread extends Thread {
         @Override
@@ -339,8 +324,6 @@ public class PhotoModule
                     : null;
 
     private final CameraErrorCallback mErrorCallback = new CameraErrorCallback();
-    private final StatsCallback mStatsCallback = new StatsCallback();
-    private final MetaDataCallback mMetaDataCallback = new MetaDataCallback();
     private long mFocusStartTime;
     private long mShutterCallbackTime;
     private long mPostViewPictureCallbackTime;
@@ -566,11 +549,6 @@ public class PhotoModule
                     onPreviewStarted();
                     break;
                 }
-
-                case INSTANT_CAPTURE: {
-                    onShutterButtonClick();
-                    break;
-                }
             }
         }
     }
@@ -618,9 +596,9 @@ public class PhotoModule
         mSensorManager = (SensorManager)(mActivity.getSystemService(Context.SENSOR_SERVICE));
 
         brightnessProgressBar = (ProgressBar)mRootView.findViewById(R.id.progress);
-
-        mBokehTipText = (TextView) mRootView.findViewById(R.id.bokeh_tip_text);
-
+        mBlurDegreeProgressBar = (SeekBar)mRootView.findViewById(R.id.blur_degree_bar);
+        mBlurDegreeProgressBar.setOnSeekBarChangeListener(mBlurDegreeListener);
+        mBlurDegreeProgressBar.setMax(100);
         if (brightnessProgressBar instanceof SeekBar) {
             SeekBar seeker = (SeekBar) brightnessProgressBar;
             seeker.setOnSeekBarChangeListener(mSeekListener);
@@ -657,7 +635,7 @@ public class PhotoModule
     // camera only
     private void locationFirstRun() {
         boolean enableRecordingLocation = false;
-        if (mActivity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (mActivity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             enableRecordingLocation = true;
         }
@@ -885,7 +863,8 @@ public class PhotoModule
     }
 
     private void resetMiscSettings() {
-        boolean disableQcomMiscSetting = PersistUtil.isDisableQcomMiscSetting();
+        boolean disableQcomMiscSetting =
+                SystemProperties.getBoolean("camera.qcom.misc.disable", false);
         if (disableQcomMiscSetting) {
             mUI.setPreference(CameraSettings.KEY_ZSL, ParametersWrapper.ZSL_OFF);
             mUI.setPreference(CameraSettings.KEY_FACE_DETECTION,
@@ -1164,115 +1143,6 @@ public class PhotoModule
         }
     }
 
-    private final class StatsCallback
-           implements android.hardware.Camera.CameraDataCallback {
-            @Override
-        public void onCameraData(int [] data, android.hardware.Camera camera) {
-            //if(!mPreviewing || !mHiston || !mFirstTimeInitialized){
-            if(!mHiston || !mFirstTimeInitialized){
-                return;
-            }
-            //The first element in the array stores max hist value . Stats data begin from second value
-            synchronized(statsdata) {
-                System.arraycopy(data,0,statsdata,0,STATS_DATA);
-            }
-            mActivity.runOnUiThread(new Runnable() {
-                public void run() {
-                    if(mGraphView != null)
-                        mGraphView.PreviewChanged();
-                }
-           });
-        }
-    }
-
-    private final class MetaDataCallback
-           implements android.hardware.Camera.CameraMetaDataCallback{
-        private static final int QCAMERA_METADATA_HDR = 3;
-        private static final int QCAMERA_METADATA_RTB = 5;
-        private int mLastMessage = -1;
-
-        @Override
-        public void onCameraMetaData (byte[] data, android.hardware.Camera camera) {
-            int metadata[] = new int[3];
-            if (data.length >= 12) {
-                for (int i =0;i<3;i++) {
-                    metadata[i] = byteToInt( (byte []) data, i*4);
-                }
-                /* Checking if the meta data is for auto HDR */
-                if (metadata[0] == QCAMERA_METADATA_HDR) {
-                    if (metadata[2] == 1) {
-                        mAutoHdrEnable = true;
-                        mActivity.runOnUiThread(new Runnable() {
-                            public void run() {
-                                if (mDrawAutoHDR != null)
-                                    mDrawAutoHDR.AutoHDR();
-                            }
-                        });
-                    }
-                    else {
-                        mAutoHdrEnable = false;
-                        mActivity.runOnUiThread(new Runnable() {
-                            public void run() {
-                                if (mDrawAutoHDR != null)
-                                    mDrawAutoHDR.AutoHDR();
-                            }
-                        });
-                    }
-                } else if (metadata[0] == QCAMERA_METADATA_RTB) {
-                    final String tip;
-                    Log.d(TAG,"QCAMERA_METADATA_RTB msgtype =" +metadata[2]);
-                    switch (metadata[2]) {
-                        case TOO_FAR:
-                            tip = "Too far";
-                            break;
-                        case TOO_NEAR:
-                            tip = "Too near";
-                            break;
-                        case LOW_LIGHT:
-                            tip = "Low light";
-                            break;
-                        case SUBJECT_NOT_FOUND:
-                            tip = "Object not found";
-                            break;
-                        case DEPTH_EFFECT_SUCCESS:
-                            tip = "Depth effect success";
-                            break;
-                        case NO_DEPTH_EFFECT:
-                            tip = "NO depth effect";
-                            break;
-                        default:
-                            tip = "Message type =" + metadata[2];
-                            break;
-                    }
-                    mDepthSuccess = metadata[2] == DEPTH_EFFECT_SUCCESS;
-                    mActivity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (mBokehTipText != null) {
-                                if (!mDepthSuccess) {
-                                    mBokehTipText.setVisibility(View.VISIBLE);
-                                    mBokehTipText.setText(tip);
-                                } else {
-                                    mBokehTipText.setVisibility(View.GONE);
-                                }
-                            }
-                            mUI.enableBokehFocus(mDepthSuccess);
-                        }
-                    });
-                }
-            }
-        }
-
-        private int byteToInt (byte[] b, int offset) {
-            int value = 0;
-            for (int i = 0; i < 4; i++) {
-                int shift = (4 - 1 - i) * 8;
-                value += (b[(3-i) + offset] & 0x000000FF) << shift;
-            }
-            return value;
-        }
-    }
-
     private final class PostViewPictureCallback
             implements CameraPictureCallback {
         @Override
@@ -1387,12 +1257,7 @@ public class PhotoModule
 
     private final class JpegPictureCallback
             implements CameraPictureCallback {
-        public static final int GDEPTH_SIZE = 1280 * 960;
         Location mLocation;
-        byte[] mBokeh;
-        byte[] mOrigin;
-        byte[] mDepth;
-        int mCallTime = 0;
 
         public JpegPictureCallback(Location loc) {
             mLocation = loc;
@@ -1400,19 +1265,6 @@ public class PhotoModule
 
         @Override
         public void onPictureTaken(byte [] jpegData, CameraProxy camera) {
-            mCallTime ++;
-            if (mIsBokehMode && !PERSIST_BOKEH_DEBUG_CHECK && mSaveBokehXmp) {
-                if (jpegData != null && mCallTime == 1) {
-                    mBokeh = jpegData;
-                }
-                if (jpegData != null && mCallTime == 2 && mOrigin == null) {
-                    mOrigin = jpegData;
-                }
-                if (jpegData != null && mCallTime == 3) {
-                    mDepth = jpegData;
-                    jpegData = mBokeh;
-                }
-            }
             mUI.stopSelfieFlash();
             mUI.enableShutter(true);
             if (mUI.isPreviewCoverVisible()) {
@@ -1572,38 +1424,10 @@ public class PhotoModule
                         }
                         String mPictureFormat = mParameters.get(KEY_PICTURE_FORMAT);
                          Log.d(TAG, "capture:" + title + "." + mPictureFormat);
-                         if (mIsBokehMode) {
-                             if (!PERSIST_BOKEH_DEBUG_CHECK && mSaveBokehXmp) {
-                                 if (jpegData != null && mCallTime == 3) {
-                                     if (mOrigin != null && mBokeh != null) {
-                                         GImage gImage = new GImage(mOrigin, "image/jpeg");
-                                         GDepth gDepth = GDepth.createGDepth(mDepth);
-                                         gDepth.setRoi(new Rect(0,0,width,height));
-                                         mActivity.getMediaSaveService().addXmpImage(mBokeh,gImage,
-                                                 gDepth,"bokeh_"+title,date,mLocation,width,height,
-                                                 orientation,exif,mOnMediaSavedListener,
-                                                 mContentResolver,mPictureFormat);
-                                     }
-                                 }
-                             } else {
-                                 if (mCallTime == 3) {
-                                     mActivity.getMediaSaveService().addImage(mDepth,
-                                             title, date, mLocation, width, height,
-                                             orientation, exif, mOnMediaSavedListener,
-                                             mContentResolver, mPictureFormat);
-                                 } else {
-                                     mActivity.getMediaSaveService().addImage(
-                                             jpegData, title, date, mLocation, width, height,
-                                             orientation, exif, mOnMediaSavedListener,
-                                             mContentResolver, mPictureFormat);
-                                 }
-                             }
-                         } else {
-                             mActivity.getMediaSaveService().addImage(
-                                     jpegData, title, date, mLocation, width, height,
-                                     orientation, exif, mOnMediaSavedListener,
-                                     mContentResolver, mPictureFormat);
-                         }
+                            mActivity.getMediaSaveService().addImage(
+                                    jpegData, title, date, mLocation, width, height,
+                                    orientation, exif, mOnMediaSavedListener,
+                                    mContentResolver, mPictureFormat);
                             if (mRefocus && mReceivedSnapNum == 7) {
                                  mUI.showRefocusToast(mRefocus);
                             }
@@ -1692,10 +1516,8 @@ public class PhotoModule
         public void onProgressChanged(SeekBar bar, int progress, boolean fromtouch) {
             if (mParameters != null) {
                 mParameters.set(CameraSettings.KEY_QC_BOKEH_BLUR_VALUE, progress);
-                mCameraDevice.setParameters(mParameters);
-                Log.d(TAG,"seekbar bokeh degree = "+ progress);
-                mUI.setBokehRenderDegree(progress);
             }
+            Log.d(TAG,"seekbar bokeh degree = "+ progress);
         }
         public void onStopTrackingTouch(SeekBar bar) {
             final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mActivity);
@@ -1819,7 +1641,6 @@ public class PhotoModule
         if(mHiston) {
             if (mSnapshotMode != CameraInfoWrapper.CAMERA_SUPPORT_MODE_ZSL) {
                 mHiston = false;
-                mCameraDevice.setHistogramMode(null);
             }
             mActivity.runOnUiThread(new Runnable() {
                 public void run() {
@@ -1893,11 +1714,9 @@ public class PhotoModule
             mCameraDevice.enableShutterSound(!mRefocus);
         }
 
-        mSaveBokehXmp = mIsBokehMode && mDepthSuccess;
-
         if (mCameraState == LONGSHOT) {
             mLongShotCaptureCountLimit = SystemProperties.getInt(
-                                    "persist.sys.camera.longshot.shotnum", 0);
+                                    "persist.camera.longshot.shotnum", 0);
             mLongShotCaptureCount = 1;
             if(mLongshotSave) {
                 mCameraDevice.takePicture(mHandler,
@@ -2158,7 +1977,7 @@ public class PhotoModule
             flashMode = Parameters.FLASH_MODE_OFF;
             mParameters.setFlashMode(flashMode);
         }
-        if (disableLongShot || mIsBokehMode) {
+        if (disableLongShot) {
             mUI.overrideSettings(CameraSettings.KEY_LONGSHOT,
                     mActivity.getString(R.string.setting_off_value));
         } else {
@@ -2203,39 +2022,6 @@ public class PhotoModule
                     && prefSelfieMirror.getValue().equalsIgnoreCase("enable")) {
                 mUI.overrideSettings(CameraSettings.KEY_LONGSHOT, "off");
             }
-        }
-
-        String bokehMode = mPreferences.getString(
-                CameraSettings.KEY_BOKEH_MODE,
-                mActivity.getString(R.string.pref_camera_bokeh_mode_default));
-        if (!bokehMode.equals(mActivity.getString(
-                R.string.pref_camera_bokeh_mode_entry_value_disable))) {
-            mIsBokehMode = true;
-            if (mCameraDevice != null) {
-                mCameraDevice.setMetadataCb(mMetaDataCallback);
-            }
-            mUI.overrideSettings(CameraSettings.KEY_FLASH_MODE, Parameters.FLASH_MODE_OFF);
-            mUI.overrideSettings(CameraSettings.KEY_SCENE_MODE, Parameters.SCENE_MODE_AUTO);
-            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mActivity);
-            final int degree = prefs.getInt(CameraSettings.KEY_BOKEH_BLUR_VALUE,50);
-            mUI.getBokehDegreeBar().setProgress(degree);
-            mUI.getBokehDegreeBar().setOnSeekBarChangeListener(mBlurDegreeListener);
-            mUI.enableBokehRender(true);
-            mUI.setBokehRenderDegree(degree);
-            mBokehTipText.setVisibility(View.VISIBLE);
-        } else {
-            mIsBokehMode = false;
-            if (mCameraDevice != null) {
-                mCameraDevice.setMetadataCb(null);
-            }
-            mUI.overrideSettings(CameraSettings.KEY_BOKEH_MPO,
-                    mActivity.getString(R.string.pref_camera_bokeh_mpo_default));
-            mUI.overrideSettings(CameraSettings.KEY_BOKEH_BLUR_VALUE,
-                    mActivity.getString(R.string.pref_camera_bokeh_blur_degree_default));
-            mUI.getBokehDegreeBar().setOnSeekBarChangeListener(null);
-            mUI.getBokehDegreeBar().setVisibility(View.GONE);
-            mUI.enableBokehRender(false);
-            mBokehTipText.setVisibility(View.GONE);
         }
     }
 
@@ -2706,8 +2492,6 @@ public class PhotoModule
             public void run() {
                 mActivity.updateStorageSpaceAndHint();
                 updateRemainingPhotos();
-                mUI.hideUI();
-                mUI.showUI();
             }
         });
     }
@@ -3171,7 +2955,7 @@ public class PhotoModule
             }
         } else {
             Log.v(TAG, "Trigger snapshot from start preview.");
-            mHandler.sendEmptyMessageDelayed(INSTANT_CAPTURE, 1500);
+            mHandler.post(mDoSnapRunnable);
         }
     }
 
@@ -3357,19 +3141,7 @@ public class PhotoModule
         else{
             if("100".equals(jpegQuality) && (pic_size.width >= 3200)){
                 //mUnsupportedJpegQuality = true;
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mUI.hideRemainingPhotoCnt();
-                    }
-                });
             }else {
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mUI.showRemainingPhotoCnt();
-                    }
-                });
                 mParameters.setJpegQuality(JpegEncodingQualityMappings.getQualityNumber(jpegQuality));
                 int jpegFileSize = estimateJpegFileSize(pic_size, jpegQuality);
                 if (jpegFileSize != mJpegFileSizeEstimation) {
@@ -3741,7 +3513,6 @@ public class PhotoModule
                     }
                 });
                 mParameters.setSceneMode("asd");
-                mCameraDevice.setMetadataCb(mMetaDataCallback);
             }
             else {
                 mAutoHdrEnable = false;
@@ -3843,7 +3614,6 @@ public class PhotoModule
                         }
                     }
                 });
-                mCameraDevice.setHistogramMode(mStatsCallback);
                 mHiston = true;
             } else {
                 mHiston = false;
@@ -3853,7 +3623,6 @@ public class PhotoModule
                              mGraphView.setVisibility(View.INVISIBLE);
                          }
                     });
-                mCameraDevice.setHistogramMode(null);
             }
         }
 
@@ -3877,19 +3646,13 @@ public class PhotoModule
         String bokehMpo = mPreferences.getString(
                 CameraSettings.KEY_BOKEH_MPO,
                 mActivity.getString(R.string.pref_camera_bokeh_mpo_default));
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mActivity);
-        final int bokehBlurDegree = prefs.getInt(CameraSettings.KEY_BOKEH_BLUR_VALUE,50);
-        final boolean supportBokeh = CameraSettings.isBokehModeSupported(mParameters);
-        mActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mUI.getCameraControls().setBokehMode(supportBokeh);
-            }
-        });
+        String bokehBlurDegree = mPreferences.getString(
+                CameraSettings.KEY_BOKEH_BLUR_VALUE,
+                mActivity.getString(R.string.pref_camera_bokeh_blur_degree_default));
+        CameraSettings.getSupportedDegreesOfBlur(mParameters);
 
         if (!bokehMode.equals(mActivity.getString(
                 R.string.pref_camera_bokeh_mode_entry_value_disable))) {
-            mIsBokehMode = true;
             if(!zsl.equals("on")) {
                 ParametersWrapper.setZSLMode(mParameters, "on");
             }
@@ -3905,8 +3668,35 @@ public class PhotoModule
             if(mManual3AEnabled != 0) {
                 mManual3AEnabled = 0;
             }
+            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mActivity);
+            final  int degree = prefs.getInt(CameraSettings.KEY_BOKEH_BLUR_VALUE,50);
+            bokehBlurDegree = String.valueOf(degree);
+            mActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mUI.overrideSettings(CameraSettings.KEY_SCENE_MODE,
+                            mActivity.getString(R.string.pref_camera_scenemode_default));
+                    mUI.overrideSettings(CameraSettings.KEY_ZSL,
+                            mActivity.getString(R.string.pref_camera_zsl_value_on));
+                    mUI.overrideSettings(CameraSettings.KEY_FLASH_MODE, "off");
+                    mUI.overrideSettings(CameraSettings.KEY_LONGSHOT,
+                            mActivity.getString(R.string.pref_camera_longshot_default));
+                    mBlurDegreeProgressBar.setVisibility(View.VISIBLE);
+                    mBlurDegreeProgressBar.setProgress(degree);
+                }
+            });
         } else {
-            mIsBokehMode = false;
+            bokehBlurDegree = "0";
+            mActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mUI.overrideSettings(CameraSettings.KEY_BOKEH_MPO,
+                            mActivity.getString(R.string.pref_camera_bokeh_mpo_default));
+                    mUI.overrideSettings(CameraSettings.KEY_BOKEH_BLUR_VALUE,
+                            mActivity.getString(R.string.pref_camera_bokeh_blur_degree_default));
+                    mBlurDegreeProgressBar.setVisibility(View.GONE);
+                }
+            });
         }
         mParameters.set(CameraSettings.KEY_QC_BOKEH_MODE, bokehMode);
         mParameters.set(CameraSettings.KEY_QC_BOKEH_MPO_MODE, bokehMpo);
@@ -3940,9 +3730,9 @@ public class PhotoModule
         //value: 1 - FLIP_MODE_H
         //value: 2 - FLIP_MODE_V
         //value: 3 - FLIP_MODE_VH
-        int preview_flip_value = PersistUtil.getPreviewFlip();
-        int video_flip_value = PersistUtil.getVideoFlip();
-        int picture_flip_value = PersistUtil.getPictureFlip();
+        int preview_flip_value = SystemProperties.getInt("debug.camera.preview.flip", 0);
+        int video_flip_value = SystemProperties.getInt("debug.camera.video.flip", 0);
+        int picture_flip_value = SystemProperties.getInt("debug.camera.picture.flip", 0);
         int rotation = CameraUtil.getJpegRotation(mCameraId, mOrientation);
         mParameters.setRotation(rotation);
         if (rotation == 90 || rotation == 270) {
@@ -4099,14 +3889,43 @@ public class PhotoModule
         Size optimalSize = CameraUtil.getOptimalPreviewSize(mActivity, sizes,
                 (double) size.width / size.height);
 
-        Point previewSize = PersistUtil.getCameraPreviewSize();
-        if (previewSize != null) {
-            optimalSize.width = previewSize.x;
-            optimalSize.height = previewSize.y;
+        //Read Preview Resolution from adb command
+        //value: 0(default) - Default value as per snapshot aspect ratio
+        //value: 1 - 640x480
+        //value: 2 - 720x480
+        //value: 3 - 1280x720
+        //value: 4 - 1920x1080
+        int preview_resolution = SystemProperties.getInt("persist.camera.preview.size", 0);
+        switch (preview_resolution) {
+            case 1: {
+                optimalSize.width = 640;
+                optimalSize.height = 480;
+                Log.v(TAG, "Preview resolution hardcoded to 640x480");
+                break;
+            }
+            case 2: {
+                optimalSize.width = 720;
+                optimalSize.height = 480;
+                Log.v(TAG, "Preview resolution hardcoded to 720x480");
+                break;
+            }
+            case 3: {
+                optimalSize.width = 1280;
+                optimalSize.height = 720;
+                Log.v(TAG, "Preview resolution hardcoded to 1280x720");
+                break;
+            }
+            case 4: {
+                optimalSize.width = 1920;
+                optimalSize.height = 1080;
+                Log.v(TAG, "Preview resolution hardcoded to 1920x1080");
+                break;
+            }
+            default: {
+                Log.v(TAG, "Preview resolution as per Snapshot aspect ratio");
+                break;
+            }
         }
-
-        Log.d(TAG, "updateCameraParametersPreference final preview size = "
-                + optimalSize.width + ", " + optimalSize.height);
 
         Size original = mParameters.getPreviewSize();
         if (!original.equals(optimalSize)) {

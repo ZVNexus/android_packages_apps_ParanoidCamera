@@ -346,7 +346,7 @@ public class VideoUI implements PieRenderer.PieListener,
             // Cannot use RotateImageView for "done" and "cancel" button because
             // the tablet layout uses RotateLayout, which cannot be cast to
             // RotateImageView.
-            mReviewDoneButton = mRootView.findViewById(R.id.done_button);
+            mReviewDoneButton = mRootView.findViewById(R.id.btn_done);
             mReviewCancelButton = mRootView.findViewById(R.id.btn_cancel);
             mReviewPlayButton = mRootView.findViewById(R.id.btn_play);
             mReviewCancelButton.setVisibility(View.VISIBLE);
@@ -962,11 +962,6 @@ public class VideoUI implements PieRenderer.PieListener,
     @Override
     public void onPieClosed() {
         setSwipingEnabled(true);
-    }
-
-    @Override
-    public void onPieMoved(int centerX, int centerY) {
-
     }
 
     public void setSwipingEnabled(boolean enable) {

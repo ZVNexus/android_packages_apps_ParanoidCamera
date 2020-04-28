@@ -97,8 +97,8 @@ public class ZoomRenderer extends OverlayRenderer
 
     public void setZoom(float zoomValue) {
         mCamera2 = true;
-        mZoomSig = (int) zoomValue;
-        mZoomFraction = (int)(zoomValue * 10) % 10;
+        mZoomSig = Math.round(zoomValue * 10) / 10;
+        mZoomFraction = Math.round(zoomValue * 10) % 10;
         mCircleSize = (int) (mMinCircle + (mMaxCircle - mMinCircle) * (zoomValue - mZoomMinValue) /
                 (mZoomMaxValue - mZoomMinValue));
     }
@@ -145,15 +145,15 @@ public class ZoomRenderer extends OverlayRenderer
 
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
-        final float sf = detector.getScaleFactor();
-        float circle = mCircleSize * sf * sf;
+        final float sf = (float) Math.round(detector.getScaleFactor() * 100) / 100f;
+        float circle = mCircleSize * sf;
         circle = Math.max(mMinCircle, circle);
         circle = Math.min(mMaxCircle, circle);
         if (mListener != null && circle != mCircleSize) {
             mCircleSize = circle;
             if (mCamera2) {
-                float zoom = mZoomMinValue + (mZoomMaxValue - mZoomMinValue) / (mMaxCircle -
-                        mMinCircle) * (mCircleSize - mMinCircle);
+                float zoom = mZoomMinValue + (mZoomMaxValue - mZoomMinValue) * (mCircleSize -
+                        mMinCircle) / (mMaxCircle - mMinCircle);
                 mListener.onZoomValueChanged(zoom);
             } else {
                 int zoom = mMinZoom + (int) ((mCircleSize - mMinCircle) * (mMaxZoom - mMinZoom) /

@@ -28,6 +28,8 @@
  */
 package com.android.camera.util;
 
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 
@@ -52,7 +54,30 @@ public class VendorTagUtil {
     private static CaptureRequest.Key<Long> ISO_EXP =
             new CaptureRequest.Key<>("org.codeaurora.qcamera3.iso_exp_priority.use_iso_exp_priority",
                     Long.class);
+    private static CaptureRequest.Key<Integer> USE_ISO_VALUE =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.iso_exp_priority.use_iso_value",
+                    Integer.class);
+    private static CaptureRequest.Key<Integer> WB_COLOR_TEMPERATURE =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.manualWB.color_temperature",
+                    Integer.class);
+    private static CaptureRequest.Key<float[]> MANUAL_WB_GAINS =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.manualWB.gains", float[].class);
+    private static CaptureRequest.Key<Integer> PARTIAL_MANUAL_WB_MODE =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.manualWB.partial_mwb_mode", Integer.class);
+    private static CaptureRequest.Key<Byte> HDRVideoMode =
+            new CaptureRequest.Key<>("org.quic.camera2.streamconfigs.HDRVideoMode", Byte.class);
+    private static CaptureRequest.Key<Float> TONE_MAPPING_DARK_BOOST =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.darkBoostOffset", Float.class);
+    private static CaptureRequest.Key<Float> TONE_MAPPING_FOURTH_TONE =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.fourthToneAnchor", Float.class);
+    private static CaptureRequest.Key<Byte> ISVAILDDARKBOOST =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.isValidDarkBoostOffset", Byte.class);
+    private static CaptureRequest.Key<Byte> ISVAILDFOURTHTONE =
+            new CaptureRequest.Key<>("org.codeaurora.qcamera3.tmcusercontrol.isValidFourthToneAnchor", Byte.class);
 
+    private static final int MANUAL_WB_DISABLE_MODE = 0;
+    private static final int MANUAL_WB_CCT_MODE = 1;
+    private static final int MANUAL_WB_GAINS_MODE = 2;
 
     private static boolean isSupported(CaptureRequest.Builder builder,
                                        CaptureRequest.Key<?> key) {
@@ -62,6 +87,7 @@ public class VendorTagUtil {
         }catch(IllegalArgumentException exception){
             supported = false;
             Log.d(TAG, "vendor tag " + key.getName() + " is not supported");
+            exception.printStackTrace();
         }
         if ( supported ) {
             Log.d(TAG, "vendor tag " + key.getName() + " is supported");
@@ -127,8 +153,91 @@ public class VendorTagUtil {
             builder.set(ISO_EXP, value);
         }
     }
+    public static void setUseIsoValues(CaptureRequest.Builder builder,int value) {
+        if ( isUseIsoValueSupported(builder) ) {
+            builder.set(USE_ISO_VALUE, value);
+        }
+    }
     private static boolean isIsoExpPrioritySupported(CaptureRequest.Builder builder) {
         return isSupported(builder, ISO_EXP);
     }
 
+    private static boolean isUseIsoValueSupported(CaptureRequest.Builder builder) {
+        return isSupported(builder, USE_ISO_VALUE);
+    }
+
+    private static boolean isPartialWBModeSupported(CaptureRequest.Builder builder) {
+        return isSupported(builder, PARTIAL_MANUAL_WB_MODE);
+    }
+
+    private static boolean isWBTemperatureSupported(CaptureRequest.Builder builder) {
+        return isSupported(builder, WB_COLOR_TEMPERATURE);
+    }
+
+    private static boolean isMWBGainsSupported(CaptureRequest.Builder builder) {
+        return isSupported(builder, MANUAL_WB_GAINS);
+    }
+
+    public static void setWbColorTemperatureValue(CaptureRequest.Builder builder, Integer value) {
+        if (isPartialWBModeSupported(builder)) {
+            builder.set(PARTIAL_MANUAL_WB_MODE, MANUAL_WB_CCT_MODE);
+            if (isWBTemperatureSupported(builder)) {
+                builder.set(WB_COLOR_TEMPERATURE, value);
+            }
+        }
+    }
+
+    public static void setMWBGainsValue(CaptureRequest.Builder builder, float[] gains) {
+        if (isPartialWBModeSupported(builder)) {
+            builder.set(PARTIAL_MANUAL_WB_MODE, MANUAL_WB_GAINS_MODE);
+            if (isMWBGainsSupported(builder)) {
+                builder.set(MANUAL_WB_GAINS, gains);
+            }
+        }
+    }
+
+    public static void setMWBDisableMode(CaptureRequest.Builder builder) {
+        if (isPartialWBModeSupported(builder)) {
+            builder.set(PARTIAL_MANUAL_WB_MODE, MANUAL_WB_DISABLE_MODE);
+        }
+    }
+
+    public static void setToneMappingVaild(CaptureRequest.Builder builder, boolean isVaild) {
+        if (isSupported(builder, ISVAILDDARKBOOST)) {
+            builder.set(ISVAILDDARKBOOST, (byte)(isVaild ? 0x01 : 0x00));
+        }
+        if (isSupported(builder, ISVAILDFOURTHTONE)) {
+            builder.set(ISVAILDFOURTHTONE, (byte)(isVaild ? 0x01 : 0x00));
+        }
+    }
+    public static void setToneMappingDarkBoostValue(CaptureRequest.Builder builder, float value) {
+        if (isSupported(builder, TONE_MAPPING_DARK_BOOST)) {
+            builder.set(TONE_MAPPING_DARK_BOOST, value);
+        }
+    }
+    public static void setToneMappingFourthToneValue(CaptureRequest.Builder builder, float value) {
+        if (isSupported(builder, TONE_MAPPING_FOURTH_TONE)) {
+            builder.set(TONE_MAPPING_FOURTH_TONE, value);
+        }
+    }
+
+    public static void setHDRVideoMode(CaptureRequest.Builder builder, byte mode) {
+        if ( isHDRVideoModeSupported(builder) ) {
+            builder.set(HDRVideoMode, mode);
+        }
+    }
+
+    public static boolean isHDRVideoModeSupported(CaptureRequest.Builder builder) {
+        return isSupported(builder, HDRVideoMode);
+    }
+
+    public static boolean isHDRVideoModeSupported(CameraDevice camera) {
+        try {
+            CaptureRequest.Builder builder = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+            return isHDRVideoModeSupported(builder);
+        }catch(CameraAccessException exception) {
+            exception.printStackTrace();
+            return false;
+        }
+    }
 }
