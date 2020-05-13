@@ -2940,7 +2940,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                     return;
                 }
                 if (mLongshotActive) {
-                    mNumFramesArrived.getAndSet(0);
                     captureStillPictureForLongshot(captureBuilder, id);
                 } else {
                     mLongshoting = false;
@@ -3029,6 +3028,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                         }
                     });
                 }
+                mLongshoting = false;
             }
 
             @Override
@@ -3670,7 +3670,12 @@ public class CaptureModule implements CameraModule, PhotoController,
                 builder.setTag(id);
                 addPreviewSurface(builder, null, id);
                 applySettingsForUnlockFocus(builder, id);
-                mCaptureSession[id].capture(builder.build(), mCaptureCallback, mCameraHandler);
+                if (mCaptureSession[id] instanceof CameraConstrainedHighSpeedCaptureSession) {
+                    List requestList = CameraUtil.createHighSpeedRequestList(builder.build());
+                    mCaptureSession[id].captureBurst(requestList, mCaptureCallback, mCameraHandler);
+                } else {
+                    mCaptureSession[id].capture(builder.build(), mCaptureCallback, mCameraHandler);
+                }
             }
 
             mState[id] = STATE_PREVIEW;
