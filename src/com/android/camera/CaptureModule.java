@@ -8301,9 +8301,9 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     public void restartAll() {
-        Log.d(TAG, "restart all");
-        setCurrentSceneModeOnly(mNextModeIndex);
-        if(mOringalCameraId == CURRENT_ID){
+        int newId = mSceneCameraIds.get(mNextModeIndex).getCurrentId();
+        Log.d(TAG, "restart all, old id:" + mOringalCameraId + ",newId:" + newId);
+        if(mOringalCameraId == newId){
             mIsCloseCamera = false;
         }else{
             mIsCloseCamera = true;
@@ -8313,6 +8313,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             mUI.showPreviewCover();
         }
         onPauseAfterSuper(false);
+        setCurrentSceneModeOnly(mNextModeIndex);
         onResumeBeforeSuper();
         onResumeAfterSuper(true);
         setRefocusLastTaken(false);
