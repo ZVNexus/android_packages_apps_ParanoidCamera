@@ -134,6 +134,10 @@ public class PersistUtil {
             SystemProperties.get("persist.sys.camera.display.umax", "");
     private static final String PERSIST_DISPLAY_LMAX =
             SystemProperties.get("persist.sys.camera.display.lmax", "");
+    private static final boolean PERSIST_VIDEO_LIVESHOT =
+            SystemProperties.getBoolean("persist.sys.camera.video.liveshot",false);
+    private static final boolean PERSIST_VIDEO_EIS =
+            SystemProperties.getBoolean("persist.sys.camera.video.eis",false);
     private static final int PERSIST_BURST_PREVIEW_REQUEST_NUMS =
             SystemProperties.getInt("persist.sys.camera.burst.preview.nums", 1);
     private static final boolean PERSIST_SSM_ENABLE =
@@ -142,6 +146,10 @@ public class PersistUtil {
             SystemProperties.getBoolean("persist.vendor.camera.enablePIPMode", false);
     private static final boolean PERSIST_FD_RENDERING_SUPPORTED =
             SystemProperties.getBoolean("persist.sys.camera.isFDRenderingSupported", false);
+    private static final boolean PERSIST_CAM_FD_SUPPORTED =
+            SystemProperties.getBoolean("persist.sys.camera.isCamFDSupported", false);
+
+
 
     public static int getMemoryLimit() {
         return PERSIST_MEMORY_LIMIT;
@@ -352,6 +360,14 @@ public class PersistUtil {
         return PERSIST_YV_12_FORMAT_ENABLED;
     }
 
+    public static boolean isPersistVideoLiveshot(){
+        return PERSIST_VIDEO_LIVESHOT;
+    }
+
+    public static boolean isPersistVideoEis(){
+        return PERSIST_VIDEO_EIS;
+    }
+
     public static String getDisplayUMax() {
         return PERSIST_DISPLAY_UMAX;
     }
@@ -369,4 +385,6 @@ public class PersistUtil {
     }
 
     public static boolean isFDRENDERINGSUPPORTED() {return PERSIST_FD_RENDERING_SUPPORTED; }
+
+    public static boolean isCameraFDSupported() {return PERSIST_CAM_FD_SUPPORTED; }
 }
