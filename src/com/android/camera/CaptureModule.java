@@ -2776,12 +2776,15 @@ public class CaptureModule implements CameraModule, PhotoController,
             CaptureRequest.Builder builder = getRequestBuilder(id);
             builder.setTag(id);
             addPreviewSurface(builder, null, id);
-
-            applySettingsForLockFocus(builder, id);
             CaptureRequest request = builder.build();
-            mLockRequestHashCode[id] = request.hashCode();
+
+            if (!mLockAFAE) {
+                applySettingsForLockFocus(builder, id);
+                mLockRequestHashCode[id] = request.hashCode();
+                mCaptureSession[id].capture(request, mCaptureCallback, mCameraHandler);
+            }
             mState[id] = STATE_WAITING_AF_LOCK;
-            mCaptureSession[id].capture(request, mCaptureCallback, mCameraHandler);
+
             if (mHiston) {
                 updateGraghViewVisibility(View.INVISIBLE);
             }
