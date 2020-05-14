@@ -1892,7 +1892,6 @@ public class CaptureModule implements CameraModule, PhotoController,
                                 return;
                             }
                             Log.i(TAG, "cameracapturesession - onConfigured "+ id);
-                            setCameraModeSwitcherAllowed(true);
                             // When the session is ready, we start displaying the preview.
                             mCaptureSession[id] = cameraCaptureSession;
                             if(id == getMainCameraId()) {
@@ -1936,6 +1935,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                             } catch (IllegalArgumentException e) {
                                 e.printStackTrace();
                             }
+                            setCameraModeSwitcherAllowed(true);
                             mCurrentSessionClosed = false;
                         }
 
@@ -2170,7 +2170,6 @@ public class CaptureModule implements CameraModule, PhotoController,
 
                                 @Override
                                 public void onConfigured(CameraCaptureSession cameraCaptureSession) {
-                                    setCameraModeSwitcherAllowed(true);
                                     mCurrentSession = cameraCaptureSession;
                                     mCaptureSession[cameraId] = cameraCaptureSession;
                                     CameraConstrainedHighSpeedCaptureSession session =
@@ -2193,6 +2192,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                                                 + e.getMessage());
                                         e.printStackTrace();
                                     }
+                                    setCameraModeSwitcherAllowed(true);
                                 }
 
                                 @Override
@@ -5490,7 +5490,6 @@ public class CaptureModule implements CameraModule, PhotoController,
         @Override
         public void onConfigured(CameraCaptureSession cameraCaptureSession) {
             Log.d(TAG, "StartRecordingVideo session onConfigured");
-            setCameraModeSwitcherAllowed(true);
             int cameraId = getMainCameraId();
             mCurrentSession = cameraCaptureSession;
             mCaptureSession[cameraId] = cameraCaptureSession;
@@ -5504,6 +5503,7 @@ public class CaptureModule implements CameraModule, PhotoController,
             } catch (IllegalStateException e) {
                 e.printStackTrace();
             }
+            setCameraModeSwitcherAllowed(true);
             if (!mFrameProcessor.isFrameListnerEnabled() && !startMediaRecorder()) {
                 startRecordingFailed();
                 return;
@@ -5523,8 +5523,6 @@ public class CaptureModule implements CameraModule, PhotoController,
         public void onConfigured(CameraCaptureSession cameraCaptureSession) {
             Log.d(TAG, "mSessionListener session onConfigured");
             mIsPreviewingVideo = true;
-            enableVideoButton(true);
-            setCameraModeSwitcherAllowed(true);
             int cameraId = getMainCameraId();
             mCurrentSession = cameraCaptureSession;
             mCaptureSession[cameraId] = cameraCaptureSession;
@@ -5561,7 +5559,11 @@ public class CaptureModule implements CameraModule, PhotoController,
                 e.printStackTrace();
             } catch (IllegalStateException e) {
                 e.printStackTrace();
+            } catch (NullPointerException e){
+                e.printStackTrace();
             }
+            enableVideoButton(true);
+            setCameraModeSwitcherAllowed(true);
         }
 
         @Override
