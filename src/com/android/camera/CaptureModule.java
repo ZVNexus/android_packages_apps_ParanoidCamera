@@ -676,7 +676,6 @@ public class CaptureModule implements CameraModule, PhotoController,
     private MediaRecorder mMediaRecorder;
     private boolean mIsRecordingVideo;
     private boolean mIsPreviewingVideo;
-    private boolean mNeedSetupMediaRecorder;
     // The video duration limit. 0 means no limit.
     private int mMaxVideoDurationInMs;
     private boolean mIsMute = false;
@@ -2077,8 +2076,8 @@ public class CaptureModule implements CameraModule, PhotoController,
     }
 
     private void createSessionForVideo(final int cameraId) {
-        mNeedSetupMediaRecorder = false;
         setCameraModeSwitcherAllowed(false);
+        mIsRecordingVideo = mIsPreviewingVideo = false;
         try {
             setUpMediaRecorder(cameraId);
             mCameraHandler.removeMessages(CANCEL_TOUCH_FOCUS, mCameraId[cameraId]);
@@ -2138,7 +2137,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             mVideoRecordRequestBuilder.addTarget(mVideoPreviewSurface);
             setUpVideoCaptureRequestBuilder(mVideoRecordRequestBuilder, cameraId);
             mPreviewRequestBuilder[cameraId] = mVideoRecordRequestBuilder;
-            mIsPreviewingVideo = true;
             if (ApiHelper.isAndroidPOrHigher()) {
                 if (isHighSpeedRateCapture()) {
                     mVideoRecordRequestBuilder.addTarget(mMediaRecorderSurface);
@@ -5502,6 +5500,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         @Override
         public void onConfigured(CameraCaptureSession cameraCaptureSession) {
             Log.d(TAG, "mSessionListener session onConfigured");
+            mIsPreviewingVideo = true;
             enableVideoButton(true);
             setCameraModeSwitcherAllowed(true);
             int cameraId = getMainCameraId();
