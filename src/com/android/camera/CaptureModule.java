@@ -2305,7 +2305,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                 mCaptureSession[id].setRepeatingRequest(mPreviewRequestBuilder[id]
                         .build(), mCaptureCallback, mCameraHandler);
             }
-        } catch (CameraAccessException | IllegalStateException e) {
+        } catch (CameraAccessException | IllegalStateException | UnsupportedOperationException e) {
             e.printStackTrace();
         }
     }
