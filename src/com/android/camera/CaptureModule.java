@@ -1007,6 +1007,9 @@ public class CaptureModule implements CameraModule, PhotoController,
             } else {
                 mUI.updateAWBInfoVisibility(View.GONE);
                 mUI.updateAECInfoVisibility(View.GONE);
+                updateGraghViewVisibility(View.GONE);
+                updateBGStatsVisibility(View.GONE);
+                updateBEStatsVisibility(View.GONE);
             }
         }
     };
