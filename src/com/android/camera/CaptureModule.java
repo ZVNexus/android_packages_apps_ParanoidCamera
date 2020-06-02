@@ -752,6 +752,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     private int mOringalCameraId;
     private boolean mLockAFAE = false;
     private TextView mLockAFAEText;
+    private int[] mClickPosition = new int[2];
 
     private class SelfieThread extends Thread {
         public void run() {
@@ -1748,6 +1749,11 @@ public class CaptureModule implements CameraModule, PhotoController,
         if (valueF < 0) return;
         builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
         builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, valueF);
+        if(mLockAFAE){
+            mLockAFAE = false;
+            applySettingsForUnlockExposure(builder, mCurrentSceneMode.getCurrentId());
+            updateLockAFAEVisibility();
+        }
     }
 
     private void createSessions() {
@@ -4729,6 +4735,14 @@ public class CaptureModule implements CameraModule, PhotoController,
         applyZoomAndUpdate();
     }
 
+    public void onZoomEnd() {
+        if (mLockAFAE) {
+            mUI.setFocusPosition(mClickPosition[0], mClickPosition[1]);
+            mUI.onFocusStarted();
+            mUI.onFocusSucceeded(false);
+        }
+    }
+
     public void updateZoomChanged(float requestedZoom) {
         if (Math.abs(mZoomValue - requestedZoom) > 0.05) {
             mZoomValue = requestedZoom;
@@ -4935,6 +4949,8 @@ public class CaptureModule implements CameraModule, PhotoController,
         Log.d(TAG, "onLongPress " + x + " " + y);
         mLockAFAE = true;
 
+        mClickPosition[0] = x;
+        mClickPosition[1] = y;
         int[] newXY = {x, y};
         if (mUI.isOverControlRegion(newXY)) return;
         if (!mUI.isOverSurfaceView(newXY)) return;
@@ -8142,6 +8158,9 @@ public class CaptureModule implements CameraModule, PhotoController,
         }
         mInTAF = false;
         mState[id] = STATE_PREVIEW;
+        if(mLockAFAE){
+            return;
+        }
         mControlAFMode = mCurrentSceneMode.mode == CameraMode.VIDEO ?
                 CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO :
                 CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
