@@ -2154,6 +2154,12 @@ public class CaptureModule implements CameraModule, PhotoController,
                     buildConstrainedCameraSession(mCameraDevice[cameraId], optionMode,
                             surfaces, mSessionListener, mCameraHandler, mVideoRecordRequestBuilder);
                 } else {
+                    int preivewFPS = mSettingsManager.getVideoPreviewFPS(mVideoSize,
+                            mSettingsManager.getVideoFPS());
+                    if(mSettingsManager.getVideoFPS() == NORMAL_SESSION_MAX_FPS
+                            && preivewFPS == 30){
+                        mVideoRecordRequestBuilder.addTarget(mMediaRecorderSurface);
+                    }
                     configureCameraSessionWithParameters(cameraId, surfaces,
                             mSessionListener, mCameraHandler, mVideoRecordRequestBuilder);
                 }
