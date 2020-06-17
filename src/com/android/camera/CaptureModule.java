@@ -3222,6 +3222,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                                             CaptureFailure result) {
                     Log.d(TAG, "captureStillPictureForCommon onCaptureFailed: " + id);
                     enableShutterAndVideoOnUiThread(id, true);
+                    setCameraModeSwitcherAllowed(true);
                 }
 
                 @Override
@@ -3257,6 +3258,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                             }
                         }
                     }
+                    setCameraModeSwitcherAllowed(true);
                 }
             }, mCaptureCallbackHandler);
         }
@@ -3783,7 +3785,9 @@ public class CaptureModule implements CameraModule, PhotoController,
                 public void run() {
                     mUI.stopSelfieFlash();
                     if (force || !captureWaitImageReceive()) {
-                        mUI.enableShutter(true);
+                        if(mCurrentSceneMode.mode != CameraMode.VIDEO && mCurrentSceneMode.mode != CameraMode.HFR) {
+                            mUI.enableShutter(true);
+                        }
                     }
                     if (mDeepPortraitMode) {
                         mUI.enableVideo(false);
@@ -6916,8 +6920,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             return;
         }
 
-        Log.d(TAG,"onShutterButtonClick");
-
         if (mCurrentSceneMode.mode == CameraMode.HFR ||
                 mCurrentSceneMode.mode == CameraMode.VIDEO) {
             if (mSettingsManager.isLiveshotSupported(mVideoSize,mSettingsManager.getVideoFPS())){
@@ -6925,13 +6927,15 @@ public class CaptureModule implements CameraModule, PhotoController,
             }
             return;
         }
-
+        setCameraModeSwitcherAllowed(false);
+        Log.d(TAG,"onShutterButtonClick");
         String timer = mSettingsManager.getValue(SettingsManager.KEY_TIMER);
         int seconds = Integer.parseInt(timer);
         // When shutter button is pressed, check whether the previous countdown is
         // finished. If not, cancel the previous countdown and start a new one.
         if (mUI.isCountingDown()) {
             mUI.cancelCountDown();
+            setCameraModeSwitcherAllowed(true);
             return;
         }
         if (seconds > 0) {
@@ -6939,6 +6943,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         } else {
             if (mChosenImageFormat == ImageFormat.YUV_420_888 && mPostProcessor.isItBusy()) {
                 warningToast("It's still busy processing previous scene mode request.");
+                setCameraModeSwitcherAllowed(true);
                 return;
             }
             checkSelfieFlashAndTakePicture();
