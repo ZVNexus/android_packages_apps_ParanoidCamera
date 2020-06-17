@@ -7479,7 +7479,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void applyZoomAndUpdate(int id) {
         CaptureRequest.Builder captureRequest = mPreviewRequestBuilder[id];
-        if (mMediaRecorderPausing) {
+        if (mMediaRecorderPausing && mCurrentSceneMode.mode != CameraMode.HFR) {
             Log.i(TAG,"update zoom for recording pause state");
             captureRequest = mVideoPreviewRequestBuilder;
         }
