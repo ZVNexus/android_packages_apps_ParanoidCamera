@@ -147,6 +147,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executor;
 import java.lang.reflect.Method;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import androidx.heifwriter.HeifWriter;
@@ -176,6 +177,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     public static final int INTENT_MODE_CAPTURE = 1;
     public static final int INTENT_MODE_VIDEO = 2;
     public static final int INTENT_MODE_CAPTURE_SECURE = 3;
+    public static final int INTENT_MODE_STILL_IMAGE_CAMERA = 4;
     private static final int BACK_MODE = 0;
     private static final int FRONT_MODE = 1;
     private static final int CANCEL_TOUCH_FOCUS_DELAY = PersistUtil.getCancelTouchFocusDelay();
@@ -594,6 +596,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     private static final String sTempCropFilename = "crop-temp";
     private static final int REQUEST_CROP = 1000;
     private int mIntentMode = INTENT_MODE_NORMAL;
+    private boolean mIsVoiceTakePhote = false;
     private String mCropValue;
     private Uri mCurrentVideoUri;
     private boolean mTempHoldVideoInVideoIntent = false;
@@ -687,6 +690,7 @@ public class CaptureModule implements CameraModule, PhotoController,
     private static final int CLEAR_SCREEN_DELAY = 4;
     private static final int UPDATE_RECORD_TIME = 5;
     private static final int STOP_RECORD_EIS = 6;
+    private static final int VOICE_INTERACTION_CAPTURE = 7;
     private ContentValues mCurrentVideoValues;
     private String mVideoFilename;
     private boolean mMediaRecorderPausing = false;
@@ -1932,7 +1936,10 @@ public class CaptureModule implements CameraModule, PhotoController,
                                     mCaptureSession[id].setRepeatingRequest(mPreviewRequestBuilder[id]
                                             .build(), mCaptureCallback, mCameraHandler);
                                 }
-
+                                if (mIntentMode == INTENT_MODE_STILL_IMAGE_CAMERA &&
+                                        mIsVoiceTakePhote) {
+                                    mHandler.sendEmptyMessageDelayed(VOICE_INTERACTION_CAPTURE, 500);
+                                }
                                 if (isClearSightOn()) {
                                     ClearSightImageProcessor.getInstance().onCaptureSessionConfigured(id == BAYER_ID, cameraCaptureSession);
                                 } else if (mChosenImageFormat == ImageFormat.PRIVATE && id == getMainCameraId()) {
@@ -2568,6 +2575,30 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void initModeByIntent() {
         String action = mActivity.getIntent().getAction();
+        Log.v(TAG, " initModeByIntent: " + action);
+        Bundle bundle = mActivity.getIntent().getExtras();
+        if (bundle != null) {
+            Log.v(TAG, " initModeByIntent bundle :" + bundle.toString());
+        }
+        if (MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA.equals(action)) {
+            mIntentMode = INTENT_MODE_STILL_IMAGE_CAMERA;
+            Set<String> categories = mActivity.getIntent().getCategories();
+            if (categories != null) {
+                for(String categorie: categories) {
+                    Log.v(TAG, " initModeByIntent categorie :" + categorie);
+                    if(categorie.equals("android.intent.category.VOICE")) {
+                        mIsVoiceTakePhote = true;
+                    }
+                }
+            }
+            boolean isOpenOnly = mActivity.getIntent().getBooleanExtra(
+                    "com.google.assistant.extra.CAMERA_OPEN_ONLY", false);
+            if (isOpenOnly) {
+                mIsVoiceTakePhote = false;
+            }
+            Log.v(TAG, " initModeByIntent isOpenOnly :" + isOpenOnly + ", mIsVoiceTakePhote :"
+                    + mIsVoiceTakePhote);
+        }
         if (MediaStore.ACTION_IMAGE_CAPTURE.equals(action)) {
             mIntentMode = INTENT_MODE_CAPTURE;
         } else if (CameraActivity.ACTION_IMAGE_CAPTURE_SECURE.equals(action)) {
@@ -3567,7 +3598,8 @@ public class CaptureModule implements CameraModule, PhotoController,
                                             orientation = CameraUtil.getJpegRotation(getMainCameraId(),mOrientation);
                                         }
 
-                                        if (mIntentMode != CaptureModule.INTENT_MODE_NORMAL) {
+                                        if (mIntentMode != CaptureModule.INTENT_MODE_NORMAL &&
+                                                mIntentMode != INTENT_MODE_STILL_IMAGE_CAMERA) {
                                             mJpegImageData = bytes;
                                             if (!mQuickCapture) {
                                                 showCapturedReview(bytes, orientation);
@@ -3579,6 +3611,11 @@ public class CaptureModule implements CameraModule, PhotoController,
                                             if (image.getFormat() == ImageFormat.HEIC) {
                                                 pictureFormat = "heic";
                                             }
+                                            if (mIntentMode == INTENT_MODE_STILL_IMAGE_CAMERA) {
+                                                title = title + "\\";
+                                                mIntentMode = INTENT_MODE_NORMAL;
+                                            }
+                                            Log.v("daming", " image title :" + title);
                                             mActivity.getMediaSaveService().addImage(bytes, title, date,
                                                     null, image.getWidth(), image.getHeight(), orientation, exif,
                                                     mOnMediaSavedListener, mContentResolver,pictureFormat);
@@ -8769,6 +8806,13 @@ public class CaptureModule implements CameraModule, PhotoController,
                     mUI.enableVideo(true);
                     if (mIntentMode != INTENT_MODE_VIDEO && !mPaused) {
                         createSessions();
+                    }
+                    break;
+                }
+                case VOICE_INTERACTION_CAPTURE: {
+                    if (mIntentMode == INTENT_MODE_STILL_IMAGE_CAMERA && mIsVoiceTakePhote) {
+                        onShutterButtonClick();
+                        mIsVoiceTakePhote = false;
                     }
                     break;
                 }
