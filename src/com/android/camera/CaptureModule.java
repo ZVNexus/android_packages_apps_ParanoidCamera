@@ -6351,6 +6351,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
             // set preview at resume and pause, no need repeating at stop
             if (captureRequestBuilder != null && (mCurrentSession != null) && !isStopRecord) {
+                applyZoom(captureRequestBuilder, mCurrentSceneMode.getCurrentId());
                 if (mCurrentSession instanceof CameraConstrainedHighSpeedCaptureSession) {
                     List requestList = CameraUtil.createHighSpeedRequestList(captureRequestBuilder.build());
                     mCurrentSession.setRepeatingBurst(requestList,
