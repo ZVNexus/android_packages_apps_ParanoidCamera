@@ -2907,6 +2907,9 @@ public class CaptureModule implements CameraModule, PhotoController,
             CaptureRequest.Builder captureBuilder = getRequestBuilder(
                     CameraDevice.TEMPLATE_STILL_CAPTURE,id);
 
+            if(mLockAFAE){
+                applySettingsForLockExposure(captureBuilder, id);
+            }
             if (mSettingsManager.isZSLInHALEnabled() || isActionImageCapture()) {
                 captureBuilder.set(CaptureRequest.CONTROL_ENABLE_ZSL, true);
             } else {
@@ -3254,6 +3257,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                             }
                         }
                     }
+                    setCameraModeSwitcherAllowed(true);
                 }
             }, mCaptureCallbackHandler);
         }
@@ -3712,6 +3716,10 @@ public class CaptureModule implements CameraModule, PhotoController,
     public void unlockFocus(int id) {
         Log.d(TAG, "unlockFocus " + id);
         isFlashRequiredInDriver = false;
+        if ((mCurrentSceneMode.mode == CameraMode.HFR) && isHighSpeedRateCapture()) {
+            Log.d(TAG, "unlockFocus should not be triggered in HFR");
+            return;
+        }
         if (!checkSessionAndBuilder(mCaptureSession[id], mPreviewRequestBuilder[id])) {
             return;
         }
@@ -3780,7 +3788,9 @@ public class CaptureModule implements CameraModule, PhotoController,
                 public void run() {
                     mUI.stopSelfieFlash();
                     if (force || !captureWaitImageReceive()) {
-                        mUI.enableShutter(true);
+                        if(mCurrentSceneMode.mode != CameraMode.VIDEO && mCurrentSceneMode.mode != CameraMode.HFR) {
+                            mUI.enableShutter(true);
+                        }
                     }
                     if (mDeepPortraitMode) {
                         mUI.enableVideo(false);
@@ -4276,6 +4286,8 @@ public class CaptureModule implements CameraModule, PhotoController,
             closeCamera();
             mUI.showPreviewCover();
             mUI.hideSurfaceView();
+        }else{
+            closeProcessors();
         }
         resetAudioMute();
         mUI.releaseSoundPool();
@@ -4542,7 +4554,8 @@ public class CaptureModule implements CameraModule, PhotoController,
         Log.d(TAG, "onResume " + (mCurrentSceneMode != null ? mCurrentSceneMode.mode : "null")
                 + (resumeFromRestartAll ? " isResumeFromRestartAll" : ""));
         mOringalCameraId = CURRENT_ID;
-        if(mCurrentSceneMode.mode == CameraMode.VIDEO){
+        if(mCurrentSceneMode.mode == CameraMode.VIDEO ||
+                mCurrentSceneMode.mode == CameraMode.HFR){
             enableVideoButton(false);//disable the video button before media recorder is ready
         }
         if (mCurrentSceneMode.mode != CameraMode.HFR){
@@ -6910,8 +6923,6 @@ public class CaptureModule implements CameraModule, PhotoController,
             return;
         }
 
-        Log.d(TAG,"onShutterButtonClick");
-
         if (mCurrentSceneMode.mode == CameraMode.HFR ||
                 mCurrentSceneMode.mode == CameraMode.VIDEO) {
             if (mSettingsManager.isLiveshotSupported(mVideoSize,mSettingsManager.getVideoFPS())){
@@ -6919,13 +6930,18 @@ public class CaptureModule implements CameraModule, PhotoController,
             }
             return;
         }
-
+        if (!mUI.isShutterEnabled()) {
+            return;
+        }
+        setCameraModeSwitcherAllowed(false);
+        Log.d(TAG,"onShutterButtonClick");
         String timer = mSettingsManager.getValue(SettingsManager.KEY_TIMER);
         int seconds = Integer.parseInt(timer);
         // When shutter button is pressed, check whether the previous countdown is
         // finished. If not, cancel the previous countdown and start a new one.
         if (mUI.isCountingDown()) {
             mUI.cancelCountDown();
+            setCameraModeSwitcherAllowed(true);
             return;
         }
         if (seconds > 0) {
@@ -6933,6 +6949,7 @@ public class CaptureModule implements CameraModule, PhotoController,
         } else {
             if (mChosenImageFormat == ImageFormat.YUV_420_888 && mPostProcessor.isItBusy()) {
                 warningToast("It's still busy processing previous scene mode request.");
+                setCameraModeSwitcherAllowed(true);
                 return;
             }
             checkSelfieFlashAndTakePicture();
@@ -7479,7 +7496,7 @@ public class CaptureModule implements CameraModule, PhotoController,
 
     private void applyZoomAndUpdate(int id) {
         CaptureRequest.Builder captureRequest = mPreviewRequestBuilder[id];
-        if (mMediaRecorderPausing) {
+        if (mMediaRecorderPausing && mCurrentSceneMode.mode != CameraMode.HFR) {
             Log.i(TAG,"update zoom for recording pause state");
             captureRequest = mVideoPreviewRequestBuilder;
         }
@@ -7510,7 +7527,7 @@ public class CaptureModule implements CameraModule, PhotoController,
                 }
 
             }
-        } catch (CameraAccessException | IllegalStateException e) {
+        } catch (CameraAccessException | IllegalStateException | IllegalArgumentException e) {
             e.printStackTrace();
         }
     }
