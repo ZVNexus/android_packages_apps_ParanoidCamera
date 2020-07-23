@@ -170,7 +170,7 @@
 
     <Button
         android:id="@+id/shutter_button"
-        android:background="@drawable/photo_capture"
+        android:background="@drawable/btn_new_shutter"
         android:layout_width="75dp"
         android:layout_height="75dp"
         android:layout_marginLeft="175dp"
@@ -180,7 +180,7 @@
 
     <Button
         android:id="@+id/buttonLShot"
-        android:background="@drawable/photo_capture"
+        android:background="@drawable/btn_new_shutter"
         android:layout_width="75dp"
         android:layout_height="75dp"
         android:layout_marginLeft="50dp"
